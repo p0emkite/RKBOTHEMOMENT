@@ -74,6 +74,7 @@ async function playersFor(n){
  if(!list.length)throw Error(n+"차 시즌 카드 데이터가 비어 있어요.");
  try{await root.RKBONameMap?.apply?.(list,null)}catch(e){console.warn("[RKBO packs] name map",e)}
  try{root.RKBOTeamBrand?.decorate?.(list)}catch(e){console.warn("[RKBO packs] team metadata",e)}
+ root.RKBOSeasonEngine?.applyStamina?.(list);
  list=root.RKBOCardSpecials?.addTo?.(list,n)||list;
  const map=new Map(list.map(p=>[p.id,p]));cache.set(n,map);return map;
 }

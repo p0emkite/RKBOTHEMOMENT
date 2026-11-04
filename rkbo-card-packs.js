@@ -98,6 +98,37 @@ function frame(){
  '<div class="rkbo-pack-body" id="rkbo-pack-body"></div><p class="rkbo-pack-status" id="rkbo-pack-status" role="status"></p>';
  dialog.querySelectorAll("[data-pack-tab]").forEach(b=>b.classList.toggle("active",b.dataset.packTab===tab));
 }
+const ULTRA_MODE_KEY="rtm-special-cinematic-mode-v3";
+function getCinematicMode(){
+ try{return localStorage.getItem(ULTRA_MODE_KEY)==="legacy"?"legacy":"ultra"}
+ catch(_){return "ultra"}
+}
+function cinematicSettings(){
+ const mode=getCinematicMode();
+ return '<div class="rkbo-pack-cinematic-settings">'+
+  '<label for="rkbo-cinematic-mode">🎬 특수 카드 연출</label>'+
+  '<select id="rkbo-cinematic-mode" data-pack-cinematic-mode aria-label="특수 카드 개봉 연출">'+
+  '<option value="ultra"'+(mode==="ultra"?' selected':'')+'>3D 시네마틱 3.0 · 전체 화면</option>'+
+  '<option value="legacy"'+(mode==="legacy"?' selected':'')+'>기존 연출 · 원복</option>'+
+  '</select><small>추첨 확률·천장·보유 카드는 동일해요. 언제든 기존 연출로 바꿀 수 있습니다.</small></div>';
+}
+/* Visuals only. Server decides the draw before this is called. */
+async function runCinematic(stage,grade,cont,player,packSeason){
+ if(getCinematicMode()==="ultra"&&root.RTMUltra?.play){
+  const pack=packFor(packSeason);
+  const packArtUrl=pack?.image_url||defaultPackArt;
+  return root.RTMUltra.play(stage,grade,cont,player,{
+   strictAssets:true,
+   packArtUrl,
+   renderCard(p){
+    if(!root.RKBOCardExport?.make)throw Error("도감의 원본 카드 생성기를 찾지 못했습니다.");
+    const effects=owned.get(p.id);
+    return root.RKBOCardExport.make(p,{gold_border:effects?.gold_border===true,prism:effects?.prism===true});
+   }
+  });
+ }
+ return root.RKBOPackCinematic?.play?.(stage,grade,cont,player)??false;
+}
 function renderPack(){
  const body=$("#rkbo-pack-body");
  if(!body)return;
@@ -109,7 +140,7 @@ function renderPack(){
  '<div><small>연속 다이아·특수 미획득</small><strong>'+(packsState?.no_diamond_streak||0)+'/49</strong></div>'+
  '<div><small>보유 종류</small><strong>'+owned.size+'종</strong></div></section>'+
  '<div class="rkbo-pack-odds"><b>'+esc(packFor(season)?.label||season+'차 카드팩')+'</b><span>브론즈 50% · 실버 32% · 골드 16% · 코랄 1% · 다이아몬드 0.5% · 특수등급 0.5%</span>'+
- '</div>'+
+ '</div>'+cinematicSettings()+
  '<div class="rkbo-pack-season-toggle"><label for="rkbo-pack-season">카드팩 선택</label><select id="rkbo-pack-season" data-pack-season>'+
  packChoices.filter(p=>p.active).map(p=>'<option value="'+p.season+'"'+(p.season===season?' selected':'')+'>'+esc(p.label)+'</option>').join("")+'</select></div>'+ 
  '<div class="rkbo-pack-stage" id="rkbo-pack-stage" '+(draws.length?'data-pack="next" title="터치해서 다음 카드 공개"':'')+'><div class="rkbo-pack-aura"></div>'+
@@ -551,6 +582,13 @@ function init(){
   catch(err){message(err.message);alert("팩 설정 실패: "+err.message)}
  });
  dialog.addEventListener("change",e=>{
+   if(e.target.matches("[data-pack-cinematic-mode]")){
+    if(opening){e.target.value=getCinematicMode();return}
+    const mode=e.target.value==="legacy"?"legacy":"ultra";
+    try{localStorage.setItem(ULTRA_MODE_KEY,mode)}catch(_){}
+    message(mode==="legacy"?"기존 카드팩 연출로 전환했습니다.":"시네마틱 3.0 전체 화면 연출로 전환했습니다.");
+    return;
+   }
   if(e.target.matches("[data-pack-filter]")){collectionFilter=e.target.value;collectionLimit=36;renderCollection()}
   if(e.target.matches("[data-admin-season]")){adminSeason=Number(e.target.value);renderAdmin()}
   if(e.target.matches("#rkbo-admin-image")){

@@ -4,7 +4,8 @@
  */
 (function(root){"use strict";
  const VERSION="0.187.0";
- const THREE_URL="https://cdn.jsdelivr.net/npm/three@"+VERSION+"/build/three.module.js";
+ const SCRIPT_DIR=document.currentScript?.src?new URL("./",document.currentScript.src):new URL("./preview/",document.baseURI);
+ const THREE_URL=new URL("vendor/three.module.js",SCRIPT_DIR).href;
  const COLORS={
   "코랄":{name:"CORAL",hex:0xff859f,code:"#ff859f",tag:"CORAL"},
   "다이아몬드":{name:"DIAMOND",hex:0x79eaff,code:"#79eaff",tag:"DIAMOND"},

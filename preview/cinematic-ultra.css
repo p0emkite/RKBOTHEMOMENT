@@ -73,3 +73,12 @@
  .rtm-ultra *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:0ms!important}
  .rtm-ultra[data-phase="hero"] .ultra-title{opacity:.7}
 }
+/* Interactive 3D card that remains after the full-screen sequence ends. */
+.lab-result{perspective:1100px;perspective-origin:50% 46%;background:radial-gradient(ellipse at center,#1f466e 0%,#071b37 47%,#020713 100%)!important}
+.lab-result:before{content:"";position:absolute;width:min(100%,520px);aspect-ratio:1;border:1px solid #a3dfff46;border-radius:50%;box-shadow:0 0 85px #67c9ff29,inset 0 0 100px #72d8ff20;animation:rtm-post-orbit 14s linear infinite;pointer-events:none}
+.lab-result .lab-player-card{--tilt-x:0deg;--tilt-y:0deg;--shine-x:50%;--shine-y:50%;width:min(245px,63vw)!important;height:min(340px,87vw)!important;position:relative;transform-style:preserve-3d;transform:rotateX(var(--tilt-x)) rotateY(var(--tilt-y)) translateZ(14px)!important;transition:transform .12s ease,box-shadow .2s ease!important;cursor:crosshair;pointer-events:auto;box-shadow:0 30px 80px #000c,0 0 45px var(--card-tone,#8edfff),inset 0 0 25px #fff5}
+.lab-result .lab-player-card:after{content:"";position:absolute;inset:0;z-index:9;pointer-events:none;background:radial-gradient(ellipse 70% 45% at var(--shine-x) var(--shine-y),#ffffff79,transparent 70%),repeating-linear-gradient(135deg,transparent 0 17px,#ffffff0c 19px,transparent 22px);mix-blend-mode:screen;opacity:.55}
+.lab-result .lab-player-card .player-caption{transform:translateZ(15px);text-shadow:0 3px 12px #000}
+.lab-result .lab-player-card .player-head{transform:translateZ(12px)}
+@keyframes rtm-post-orbit{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.lab-result:before{animation:none}.lab-result .lab-player-card{transition:none!important}}

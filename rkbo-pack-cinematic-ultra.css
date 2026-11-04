@@ -97,3 +97,26 @@
 @media(max-width:640px){
  .rtm-ultra .rtm-ultra-gate{height:100dvh}
 }
+
+/* Select ultra or restore the exact legacy cinematic without touching odds/inventory. */
+.rkbo-pack-cinematic-settings{
+ display:flex;align-items:center;justify-content:center;flex-wrap:wrap;
+ gap:9px 13px;max-width:650px;margin:13px auto 15px;padding:12px 14px;
+ background:linear-gradient(145deg,#0c2239,#101830);
+ border:1px solid #41668c;border-radius:12px;color:#e2f3ff;
+ font:800 12px/1.5 system-ui,sans-serif
+}
+.rkbo-pack-cinematic-settings label{white-space:nowrap}
+.rkbo-pack-cinematic-settings select{
+ width:auto;max-width:100%;min-width:min(260px,100%);
+ background-color:#1a3553;border:1px solid #6f98b9;color:white;
+ padding:9px 33px 9px 12px;font:800 12px system-ui,sans-serif;cursor:pointer
+}
+.rkbo-pack-cinematic-settings small{
+ color:#9ebbd5;display:block;width:100%;text-align:center;
+ font:500 11px/1.55 system-ui,sans-serif
+}
+@media(max-width:540px){
+ .rkbo-pack-cinematic-settings{padding:10px;margin:10px 2px;gap:7px}
+ .rkbo-pack-cinematic-settings select{width:100%}
+}

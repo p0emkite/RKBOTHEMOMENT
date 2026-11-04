@@ -4,13 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#040915">
-  <meta name="description" content="RKBO THE MOMENT 카드팩 시네마틱 2.0 — 기존 연출과 신규 연출을 실물 카드 지급 없이 체험하는 독립 테스트 페이지">
+  <meta name="description" content="RKBO THE MOMENT 카드팩 시네마틱 3.0 — 기존 연출과 신규 연출을 실물 카드 지급 없이 체험하는 독립 테스트 페이지">
   <title>RTM CINEMATIC LAB — 카드팩 개봉 연출 미리보기</title>
   <base href="../">
   <link rel="icon" href="./assets/rkbo-archive-logo.webp" type="image/webp">
   <link rel="stylesheet" href="./rkbo-pack-cinematic.css?v=20261031-direct-board-v13">
   <link rel="stylesheet" href="./preview/cinematic-next.css?v=20261104-lab1">
   <link rel="stylesheet" href="./preview/lab.css?v=20261104-lab1">
+  <link rel="stylesheet" href="./preview/cinematic-ultra.css?v=20261104-ultra1">
 </head>
 <body>
   <div class="ambient-grid" aria-hidden="true"></div>
@@ -25,11 +26,11 @@
     </header>
     <main>
       <div class="intro">
-        <div class="kicker"><i></i> EXPERIMENTAL RELEASE <span>///</span> CINEMATIC v2.0</div>
+        <div class="kicker"><i></i> EXPERIMENTAL RELEASE <span>///</span> CINEMATIC v3.0</div>
         <h1>THE NEXT <em>MOMENT.</em></h1>
         <p class="lead">선수가 등장하는 그 순간까지, 하나의 쇼처럼.<br>새로운 RTM 카드팩 연출을 직접 비교하고 체험해 봐.</p>
         <div class="pill-row">
-          <span>⚡ FULL-SCREEN REVEAL</span><span>◈ 3D CARD FLIP</span><span>✦ RARITY FX</span>
+          <span>⚡ FULL-SCREEN REVEAL</span><span>◈ REAL WEBGL 3D</span><span>✦ RARITY FX</span>
         </div>
       </div>
       <div class="lab-layout">
@@ -57,10 +58,11 @@
           <div class="control-block">
             <label class="control-label" for="mode">OPENING MODE <span>연출 버전</span></label>
             <div class="select-wrap"><select id="mode" aria-label="시네마틱 모드">
-              <option value="next">시네마틱 2.0 — 신규 연출</option>
+              <option value="ultra">시네마틱 3.0 — REAL 3D (NEW)</option>
+              <option value="next">시네마틱 2.0 — 이전 연출</option>
               <option value="legacy">시네마틱 1.0 — 기존 연출</option>
             </select></div>
-            <p class="hint">한 번의 선택으로 기존 연출과 신규 연출을 비교할 수 있어.</p>
+            <p class="hint">3.0은 진짜 3D 모델, WebGL 카메라와 광원·파편을 사용해. 1.0·2.0은 그대로 보존되어 있어. 기기에서 WebGL을 지원하지 않거나 3D 라이브러리를 불러오지 못하면 2.0으로 자동 대체돼.</p>
           </div>
           <div class="control-block">
             <div class="control-label">CARD RARITY <span>테스트 등급</span></div>
@@ -80,11 +82,12 @@
           <div class="guardrail"><b>🔒 시연 전용 모드</b><p>이 페이지는 Supabase에 접속하거나 실제 카드를 추첨하지 않아. 보유 카드·확률·천장·개봉 기록은 전혀 변경되지 않아.</p></div>
         </aside>
       </div>
-      <div class="bottom-notice"><span>RTM / VISUAL PROTOTYPE</span><span>모바일 지원 · 기존 연출 언제든 선택 가능</span><span>BUILD 2026.11.04</span></div>
+      <div class="bottom-notice"><span>RTM / VISUAL PROTOTYPE</span><span>REAL 3D WEBGL · 이전 버전 언제든 선택 가능</span><span>BUILD 2026.11.04</span></div>
     </main>
   </div>
   <script src="./rkbo-pack-cinematic.js?v=20261031-direct-board-v13"></script>
   <script src="./preview/cinematic-next.js?v=20261104-lab1"></script>
-  <script src="./preview/lab.js?v=20261104-lab1"></script>
+  <script src="./preview/cinematic-ultra.js?v=20261104-ultra1"></script>
+  <script src="./preview/lab.js?v=20261104-ultra1"></script>
 </body>
 </html>

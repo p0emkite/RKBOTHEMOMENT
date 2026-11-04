@@ -75,6 +75,7 @@ async function ensureSeasonArtwork(season){
   if(!cards.length)throw Error("No catalog cards: "+season);
   await root.RKBONameMap?.apply?.(cards,null);
   root.RKBOTeamBrand?.decorate?.(cards);
+  root.RKBOSeasonEngine?.applyStamina?.(cards);
   cards=root.RKBOCardSpecials?.addTo?.(cards,season)||cards;
   artworkCache.set(season,cards);
   refreshSeasonThumbnails(season);
@@ -261,17 +262,33 @@ async function rouletteSameGradePool(winner){
    add(await ensureSeasonArtwork(season));
   }
  }
- return {actual,alternatives:[...pool.values()].filter(p=>p.id!==winner.cardId)};
+ const alternatives=[...pool.values()].filter(p=>p.id!==winner.cardId);
+  if(!alternatives.length)alternatives.push(...catalog.filter(p=>p.id!==winner.cardId));
+  return {actual,alternatives};
 }
 async function rouletteCinematic(winner){
  if(!cinema)return;
  const group=await rouletteSameGradePool(winner);
  if(!group){console.warn("[RKBO combo] Award has no matching catalog image",winner.cardId);return}
  const {actual,alternatives}=group;
- const total=58,targetIndex=53;
+ if(!alternatives.length)return; // Never show the actual winner multiple times.
+ const total=58,targetIndex=50+Math.floor(Math.random()*5);
+ let bag=[],previousId="";
+ function drawDecoy(){
+  if(!bag.length){
+   bag=alternatives.slice();
+   for(let j=bag.length-1;j>0;j--){
+    const k=Math.floor(Math.random()*(j+1));
+    [bag[j],bag[k]]=[bag[k],bag[j]];
+   }
+  }
+  if(bag.length>1&&bag[bag.length-1].id===previousId){
+   [bag[0],bag[bag.length-1]]=[bag[bag.length-1],bag[0]];
+  }
+  const p=bag.pop();previousId=p.id;return p;
+ }
  const items=Array.from({length:total},(_,i)=>
-  rouletteActualCard(i===targetIndex?actual:
-   (alternatives.length?alternatives[i%alternatives.length]:actual),i===targetIndex));
+  rouletteActualCard(i===targetIndex?actual:drawDecoy(),i===targetIndex));
  cinema.hidden=false;
  cinema.className="rkbo-combo-cinema is-roulette-mode";
  cinema.innerHTML='<div class="rkbo-combo-cinema-panel rkbo-combo-roulette-panel">'+
@@ -333,7 +350,7 @@ function render(){
  '<button type="button" data-combo-close aria-label="닫기">×</button></header>'+
  '<div class="rkbo-combo-content"><div class="rkbo-combo-rules">'+
  '<b>동일 차수는 해당 차수 확정</b> · 혼합하면 등록된 시즌 랜덤 · 재료 점수가 높을수록 상위 등급 기대 상승.'+
- '<br>마지막 1장·MY TEAM 편성 카드·금테/프리즘·특수 등급 카드는 재료에서 제외됩니다.</div>'+
+ '<br>일반 카드의 마지막 1장·MY TEAM 편성 카드·특수 등급 카드는 제외됩니다. 금테/프리즘 카드도 조합할 수 있으며 강화 효과까지 소모될 수 있습니다.</div>'+
  resultMarkup()+
  '<div class="rkbo-combo-layout"><section class="rkbo-combo-list"><h3>보유 카드 <small>'+inventory.length+'종</small></h3>'+
  '<div class="rkbo-combo-filters"><select data-combo-filter-season>'+options()+'</select>'+
@@ -357,7 +374,7 @@ function render(){
  '<h3>🎲 결과 등급 확률 <small>공개</small></h3>'+percentMarkup()+
  '<button type="button" class="rkbo-combo-submit" data-combo-submit'+(busy||quoteLoading||!quote||selected.length<3||selected.length>5?' disabled':'')+'>'+
  (busy?'서버에서 조합 중…':'⚾ 카드 '+selected.length+'장 조합하기')+'</button>'+
- '<p class="rkbo-combo-note">조합 시 재료 카드가 차감되고 결과 카드 1장을 획득합니다. 조합은 취소할 수 없습니다.</p>'+
+ '<p class="rkbo-combo-note">조합 시 재료 카드가 차감됩니다. 강화 카드만 남은 경우 해당 강화 효과도 사라집니다. 조합은 취소할 수 없습니다.</p>'+
  '</section></div>'+
  historyMarkup()+'</div>';
  dialog.scrollTop=prevScroll;
@@ -421,7 +438,7 @@ async function combine(){
  const ingredients=selected.slice(),materials=ingredients.map(selectionCard),rated=quote;
  const seasonMsg=rated.mode==="same"?rated.season+"차 고정":"혼합 시즌 랜덤";
  if(!root.confirm("카드 "+ingredients.length+"장을 소모하고 새로운 카드 1장을 얻을까요?\n"+
- seasonMsg+" · 결과가 낮은 등급일 수도 있으며 조합 후 되돌릴 수 없습니다."))return;
+ seasonMsg+" · 강화 카드가 소모되면 강화 효과도 사라지며, 조합 후 되돌릴 수 없습니다."))return;
  busy=true;quoteIndex++;render();
  const requestId=pendingRequest||root.crypto?.randomUUID?.();
  if(!requestId){busy=false;msg("보안 연결에서 요청 ID를 생성할 수 없습니다.");render();return}

@@ -63,6 +63,7 @@ async function loadArt(season){
   }
   await root.RKBONameMap?.apply?.(players,null);
   root.RKBOTeamBrand?.decorate?.(players);
+  root.RKBOSeasonEngine?.applyStamina?.(players);
   players=root.RKBOCardSpecials?.addTo?.(players,season)||players;
   const map=new Map(players.map(p=>[p.id,p]));
   artCache.set(season,map);return map;
@@ -89,9 +90,8 @@ function collectionView(){
  if(!member)return "";
  if(!member.is_public&&selected!==userId)return '<div class="rkbo-cm-section"><h3>🔒 '+esc(member.nickname)+'님의 도감</h3>도감이 비공개 상태야.</div>';
  const available=mine.filter(p=>p.tradable);
- // A requested card can already belong to the requester: duplicates count
- // toward collecting ten copies for prism upgrades. Only the offering and
- // receiving sides' tradable spare-copy rules are checked by the server.
+ // All owned copies, including final and upgraded cards, can be traded.
+ // MY TEAM slots and private collections remain protected by the server.
  const myQuantities=new Map(mine.map(p=>[p.card_id,Number(p.quantity)||0]));
  const selectedCard=cards.find(p=>p.card_id===wanted);
  return '<section class="rkbo-cm-section"><h3>📚 '+esc(member.nickname)+'님의 카드</h3>'+
@@ -110,7 +110,7 @@ function collectionView(){
  (hasMore?'<button class="rkbo-cm-alt" data-cm-more>카드 더 보기</button>':'')+
  (wanted?'<div class="rkbo-cm-offer" id="rkbo-cm-offer"><strong>🔁 교환 요청: '+esc(selectedCard?.name||wanted)+'</strong>'+
  (myQuantities.has(wanted)?'<small>내 보유 ×'+myQuantities.get(wanted)+' · 프리즘 강화를 위한 추가 수집도 가능해요.</small>':'')+
- '<label>내가 줄 중복 카드<select id="rkbo-cm-offered">'+
+ '<label>내가 줄 카드<select id="rkbo-cm-offered">'+
  available.filter(p=>p.card_id!==wanted).map(p=>'<option value="'+esc(p.card_id)+'">'+badge(p)+' '+esc(p.name)+' (×'+p.quantity+')</option>').join("")+
  '</select></label><button data-cm-create'+(!available.filter(p=>p.card_id!==wanted).length?' disabled':'')+'>교환 요청 보내기</button></div>':'')+
  '</section>';
@@ -146,7 +146,7 @@ function tradesView(){
   '<p>'+esc({pending:"⏳ 수락 대기",accepted:"✅ 교환 완료",declined:"거절됨",cancelled:"취소됨"}[t.status]||t.status)+'</p>'+
   (t.status==="pending"?(incoming?'<div><button data-cm-trade="accept" data-id="'+esc(t.id)+'">수락</button><button data-cm-trade="decline" data-id="'+esc(t.id)+'">거절</button></div>':
     '<button data-cm-trade="cancel" data-id="'+esc(t.id)+'">취소</button>'):'')+'</article>';
- }).join(""):'<p class="rkbo-cm-muted">아직 교환 내역이 없습니다. 공개 도감에서 다른 회원의 중복 카드를 선택해 주시기 바랍니다.</p>')+'</div>';
+ }).join(""):'<p class="rkbo-cm-muted">아직 교환 내역이 없습니다. 공개 도감에서 다른 회원의 보유 카드를 선택해 주시기 바랍니다.</p>')+'</div>';
 }
 function messagesView(){
  return messages.map(m=>'<div class="rkbo-cm-message'+(m.user_id===userId?' mine':'')+'"><div><strong>'+esc(who(m.user_id))+'</strong><small>'+when(m.created_at)+'</small></div>'+
@@ -214,7 +214,7 @@ async function act(button){
  if(d.cmCreate!==undefined){
   const offered=$("#rkbo-cm-offered")?.value;
   if(!offered||!selected||!wanted)throw Error("교환 카드를 선택해 주시기 바랍니다.");
-  if(!root.confirm("서로 중복 카드 한 장씩 교환을 제안하시겠습니까?"))return;
+  if(!root.confirm("각자 보유한 카드 1장씩 교환을 제안하시겠습니까? 강화 카드는 강화 상태도 함께 이전될 수 있습니다."))return;
   const request=root.crypto?.randomUUID?.();
   if(!request)throw Error("보안 연결에서 요청 ID를 생성할 수 없습니다.");
   await call("rkbo_community_trade",{p_action:"create",p_target:selected,p_offered:offered,
@@ -222,7 +222,7 @@ async function act(button){
   await chooseTab("trades");root.dispatchEvent(new Event("rkbo-trade-updated"));inform("교환 요청을 보냈습니다. 상대방이 수락하면 카드가 교환됩니다.");return;
  }
  if(d.cmTrade){
-  if(d.cmTrade==="accept"&&!root.confirm("양쪽의 중복 카드가 한 장씩 교환됩니다. 수락하시겠습니까?"))return;
+  if(d.cmTrade==="accept"&&!root.confirm("양쪽의 카드가 한 장씩 교환됩니다. 수락하시겠습니까?"))return;
   await call("rkbo_community_trade",{p_action:d.cmTrade,p_trade:d.id});
   if(d.cmTrade==="accept"){await loadMine();root.dispatchEvent(new Event("rkbo-collection-updated"))}
   await loadTrades();root.dispatchEvent(new Event("rkbo-trade-updated"));inform(d.cmTrade==="accept"?"✅ 교환이 완료되었습니다!":"교환 상태가 변경되었습니다.");return;

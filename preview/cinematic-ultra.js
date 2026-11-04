@@ -211,7 +211,10 @@
    overlay=createDOM(tier);
    document.body.appendChild(overlay);
    const skipButton=overlay.querySelector(".ultra-skip");
-   const three=await importThree();
+   const three=await Promise.race([
+    importThree(),
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error("Three.js 연결 제한 시간 초과")),6500))
+   ]);
    if(!allowed()){dispose();return false}
    const reduced=!!root.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
    const low=/(iPhone|Android|iPad|iPod)/i.test(navigator.userAgent)||root.innerWidth<700;
@@ -237,9 +240,10 @@
     ownsTextures.push(tex);return tex;
    };
    const packMap=canvasTexture(packArtwork(tier,"main")),ripMap=canvasTexture(packArtwork(tier,"top"));
-   const portrait=await loadImage("./assets/cards/"+(player?.id||"60-SAM-타-011")+".webp");
-   if(!allowed()){dispose();return false}
-   const backImage=await loadImage("./assets/card-back.webp");
+   const [portrait,backImage]=await Promise.all([
+    loadImage("./assets/cards/"+(player?.id||"60-SAM-타-011")+".webp"),
+    loadImage("./assets/card-back.webp")
+   ]);
    if(!allowed()){dispose();return false}
    const frontMap=canvasTexture(cardArtwork(tier,player,portrait));
    const backMap=canvasTexture(cardBackArtwork(tier,backImage));

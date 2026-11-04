@@ -36,6 +36,20 @@ async function loadMine(){
  }
  for(const p of mine)cardTitles.set(p.card_id,p.name);
 }
+async function myTeamUsage(cardId){
+ if(!cardId)return [];
+ const c=await account();
+ const {data,error}=await c.from("rkbo_owned_teams").select("id,name,slots")
+  .eq("user_id",userId).limit(100);
+ if(error)throw Error("MY TEAM 편성 여부 확인 실패: "+error.message);
+ return (data||[]).filter(t=>(t.slots||[]).some(x=>x.cardId===cardId));
+}
+function tradeWarning(teams){
+ if(!teams.length)return "";
+ const labels=teams.slice(0,3).map(t=>t.name).join(", ")+(teams.length>3?" 외":"");
+ return "\n\n⚠️ 해당 카드는 MY TEAM "+teams.length+"개("+labels+")에 편성 중입니다."+
+  "\n교환이 완료되면 해당 팀의 포지션이 비워지며, 다른 선수를 편성하고 팀을 다시 저장하기 전까지 친선 경기와 도장깨기를 진행할 수 없습니다.";
+}
 async function loadMemberCards(add=false){
  if(!selected)return;
  const member=members.find(m=>m.user_id===selected);
@@ -91,7 +105,7 @@ function collectionView(){
  if(!member.is_public&&selected!==userId)return '<div class="rkbo-cm-section"><h3>🔒 '+esc(member.nickname)+'님의 도감</h3>도감이 비공개 상태야.</div>';
  const available=mine.filter(p=>p.tradable);
  // All owned copies, including final and upgraded cards, can be traded.
- // MY TEAM slots and private collections remain protected by the server.
+ // MY TEAM assignments are permitted and their saved slots are cleared when the trade completes.
  const myQuantities=new Map(mine.map(p=>[p.card_id,Number(p.quantity)||0]));
  const selectedCard=cards.find(p=>p.card_id===wanted);
  return '<section class="rkbo-cm-section"><h3>📚 '+esc(member.nickname)+'님의 카드</h3>'+
@@ -214,7 +228,8 @@ async function act(button){
  if(d.cmCreate!==undefined){
   const offered=$("#rkbo-cm-offered")?.value;
   if(!offered||!selected||!wanted)throw Error("교환 카드를 선택해 주시기 바랍니다.");
-  if(!root.confirm("각자 보유한 카드 1장씩 교환을 제안하시겠습니까? 강화 카드는 강화 상태도 함께 이전될 수 있습니다."))return;
+  const affected=await myTeamUsage(offered);
+   if(!root.confirm("각자 보유한 카드 1장씩 교환을 제안하시겠습니까? 강화 카드는 강화 상태도 함께 이전될 수 있습니다."+tradeWarning(affected)))return;
   const request=root.crypto?.randomUUID?.();
   if(!request)throw Error("보안 연결에서 요청 ID를 생성할 수 없습니다.");
   await call("rkbo_community_trade",{p_action:"create",p_target:selected,p_offered:offered,
@@ -222,10 +237,15 @@ async function act(button){
   await chooseTab("trades");root.dispatchEvent(new Event("rkbo-trade-updated"));inform("교환 요청을 보냈습니다. 상대방이 수락하면 카드가 교환됩니다.");return;
  }
  if(d.cmTrade){
-  if(d.cmTrade==="accept"&&!root.confirm("양쪽의 카드가 한 장씩 교환됩니다. 수락하시겠습니까?"))return;
+  if(d.cmTrade==="accept"){
+    const trade=trades.find(t=>t.id===d.id);
+    if(!trade)throw Error("교환 내역을 새로고침해 주세요.");
+    const affected=await myTeamUsage(trade.requested_card_id);
+    if(!root.confirm("양쪽의 카드가 한 장씩 교환됩니다. 수락하시겠습니까?"+tradeWarning(affected)))return;
+   }
   await call("rkbo_community_trade",{p_action:d.cmTrade,p_trade:d.id});
   if(d.cmTrade==="accept"){await loadMine();root.dispatchEvent(new Event("rkbo-collection-updated"))}
-  await loadTrades();root.dispatchEvent(new Event("rkbo-trade-updated"));inform(d.cmTrade==="accept"?"✅ 교환이 완료되었습니다!":"교환 상태가 변경되었습니다.");return;
+  await loadTrades();root.dispatchEvent(new Event("rkbo-trade-updated"));inform(d.cmTrade==="accept"?"✅ 교환이 완료되었습니다. MY TEAM에서 비워진 자리는 새 선수를 넣고 다시 저장해 주세요.":"교환 상태가 변경되었습니다.");return;
  }
  if(d.cmRefresh!==undefined){await loadTrades();return}
  if(d.cmSend!==undefined){

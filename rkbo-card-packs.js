@@ -226,7 +226,7 @@ function showCurrentReveal(){
  const special=PRIORITIES[draw.grade]>=3;
  const ultraDone=special&&getCinematicMode()==="ultra"&&root.RTMUltra?.getFallback?.()==="";
  const card=renderPlayer(p),front=special&&!ultraDone?'<div class="rkbo-pack-flip">'+
-  '<div class="rkbo-pack-flip-inner"><div class="rkbo-pack-flip-back" aria-label="선수 카드 뒷면"><img src="./assets/card-back.webp?v=rtm-20261031" alt="" draggable="false"></div>'+
+  '<div class="rkbo-pack-flip-inner"><div class="rkbo-pack-flip-back" aria-label="선수 카드 뒷면"><img src="./assets/card-back-hd.webp?v=rtm-20261104-750x1050" alt="" draggable="false"></div>'+
   '<div class="rkbo-pack-flip-front">'+card+'</div></div></div>':card;
  target.innerHTML='<div class="rkbo-pack-reveal-heading rarity-'+esc(draw.grade)+'"><span>'+(cursor)+'/5</span><strong>'+esc(displayGrade(draw.grade))+'</strong>'+
  '<span>'+(draw.isNew?'✨ NEW':'중복 카드 ×'+draw.quantity)+'</span></div>'+
@@ -292,7 +292,7 @@ async function previewCinematic(grade){
   const tone=SPECIAL_RARITIES.includes(player.grade)?"special":player.grade==="코랄"?"coral":"diamond";
   const ultraDone=getCinematicMode()==="ultra"&&root.RTMUltra?.getFallback?.()==="";
   const previewCard=ultraDone?renderPlayer(player):'<div class="rkbo-pack-flip"><div class="rkbo-pack-flip-inner">'+
-   '<div class="rkbo-pack-flip-back"><img src="./assets/card-back.webp?v=rtm-20261031" alt="" draggable="false"></div>'+
+   '<div class="rkbo-pack-flip-back"><img src="./assets/card-back-hd.webp?v=rtm-20261104-750x1050" alt="" draggable="false"></div>'+
    '<div class="rkbo-pack-flip-front">'+renderPlayer(player)+'</div></div></div>';
   stage.innerHTML='<div id="rkbo-pack-reveal">'+
    '<div class="rkbo-pack-reveal-heading rarity-'+esc(player.grade)+'"><span>🧪 TEST</span><strong>'+esc(player.grade)+'</strong><span>미지급</span></div>'+

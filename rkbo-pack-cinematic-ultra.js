@@ -68,6 +68,54 @@
  }
  // Slice the user's real pack artwork into the two independently animated foil parts.
  // Never typeset a new brand, season, or pack name when a real pack image is supplied.
+ function isolatePack(source){
+  const sw=source.naturalWidth||source.width,sh=source.naturalHeight||source.height;
+  if(!sw||!sh)return source;
+  const fit=Math.min(1,2200/Math.max(sw,sh));
+  const [base,ctx]=canvas(Math.max(1,Math.round(sw*fit)),Math.max(1,Math.round(sh*fit)));
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+  ctx.drawImage(source,0,0,base.width,base.height);
+  let img;
+  try{img=ctx.getImageData(0,0,base.width,base.height)}
+  catch(e){console.warn("[RTM Ultra] alpha extraction unavailable",e);return base}
+  const w=base.width,h=base.height,arr=img.data,n=w*h;
+  const seen=new Uint8Array(n),queue=new Int32Array(n);
+  let head=0,tail=0,minX=w,minY=h,maxX=-1,maxY=-1,removed=0;
+  const background=p=>{
+   const k=p*4,r=arr[k],g=arr[k+1],b=arr[k+2],a=arr[k+3];
+   const hi=Math.max(r,g,b),lo=Math.min(r,g,b);
+   return a<18||hi<43||(hi<62&&hi-lo<24);
+  };
+  const visit=p=>{
+   if(p<0||p>=n||seen[p]||!background(p))return;
+   seen[p]=1;queue[tail++]=p;
+  };
+  for(let x=0;x<w;x++){visit(x);visit((h-1)*w+x)}
+  for(let y=0;y<h;y++){visit(y*w);visit(y*w+w-1)}
+  while(head<tail){
+   const p=queue[head++],x=p%w,y=Math.floor(p/w);
+   if(x>0)visit(p-1);if(x<w-1)visit(p+1);
+   if(y>0)visit(p-w);if(y<h-1)visit(p+w);
+  }
+  for(let p=0;p<n;p++){
+   const k=p*4;
+   if(seen[p]){arr[k+3]=0;removed++;continue}
+   if(arr[k+3]>12){
+    const x=p%w,y=Math.floor(p/w);
+    if(x<minX)minX=x;if(x>maxX)maxX=x;
+    if(y<minY)minY=y;if(y>maxY)maxY=y;
+   }
+  }
+  if(maxX<minX||maxY<minY)return base;
+  ctx.putImageData(img,0,0);
+  minX=Math.max(0,minX-2);minY=Math.max(0,minY-2);
+  maxX=Math.min(w-1,maxX+2);maxY=Math.min(h-1,maxY+2);
+  const cw=maxX-minX+1,ch=maxY-minY+1;
+  if(!removed&&cw===w&&ch===h)return base;
+  const [out,o]=canvas(cw,ch);
+  o.drawImage(base,minX,minY,cw,ch,0,0,cw,ch);
+  return out;
+ }
  function packSlice(source,start,end){
   const sourceWidth=source.naturalWidth||source.width;
   const sourceHeight=source.naturalHeight||source.height;
@@ -287,13 +335,14 @@
    const [realPack,exactCard,backImage]=await Promise.all([
     imageUrl?loadImage(imageUrl):Promise.resolve(null),
     typeof options?.renderCard==="function"?options.renderCard(player):Promise.resolve(null),
-    loadImage("./assets/card-back.webp")
+    loadImage("./assets/card-back-hd.webp").then(img=>img||loadImage("./assets/card-back.webp"))
    ]);
    if(!allowed()||skipped){dispose();return allowed()}
    if(options?.strictAssets&&(!realPack||!exactCard||typeof exactCard.getContext!=="function"))
     throw Error("실제 카드팩/도감 카드 텍스처를 불러오지 못했습니다.");
-   const packMap=canvasTexture(realPack?packSlice(realPack,.15,1):packArtwork(tier,"main"));
-   const ripMap=canvasTexture(realPack?packSlice(realPack,0,.15):packArtwork(tier,"top"));
+   const packImage=realPack?isolatePack(realPack):null;
+   const packMap=canvasTexture(packImage?packSlice(packImage,.15,1):packArtwork(tier,"main"));
+   const ripMap=canvasTexture(packImage?packSlice(packImage,0,.15):packArtwork(tier,"top"));
    const frontMap=canvasTexture(exactCard||cardArtwork(tier,player,null));
    const backMap=canvasTexture(backImage?exactCardBack(backImage):cardBackArtwork(tier,null));
    // Gate stays up through every async asset fetch, then opens to the Welcome card.
@@ -305,15 +354,16 @@
    // text, foil and player art; the 3D meshes still move in world space.
    const frontMat=new THREE.MeshBasicMaterial({map:frontMap,toneMapped:false,side:THREE.FrontSide});
    const reverseMat=new THREE.MeshBasicMaterial({map:backMap,toneMapped:false});
-   const foilMat=new THREE.MeshBasicMaterial({map:packMap,toneMapped:false});
-   const ripMat=new THREE.MeshBasicMaterial({map:ripMap,toneMapped:false});
-   const blackMat=new THREE.MeshStandardMaterial({color:0x10243f,metalness:.8,roughness:.28});
+   const foilMat=new THREE.MeshBasicMaterial({map:packMap,transparent:true,alphaTest:.04,toneMapped:false,depthWrite:true,side:THREE.DoubleSide});
+   const ripMat=new THREE.MeshBasicMaterial({map:ripMap,transparent:true,alphaTest:.04,toneMapped:false,depthWrite:true,side:THREE.DoubleSide});
+   const foilEdge=new THREE.MeshStandardMaterial({color:0x526276,metalness:.7,roughness:.36});
    const pack=new THREE.Group();scene.add(pack);
-   const lower=new THREE.Mesh(new THREE.BoxGeometry(2.25,3.17,.22),
-     [blackMat,blackMat,blackMat,blackMat,foilMat,blackMat]);
+   // Never place an opaque rectangular backing behind the alpha-cut foil.
+   const lower=new THREE.Mesh(new THREE.BoxGeometry(2.25,3.17,.09),
+     [foilEdge,foilEdge,foilEdge,foilEdge,foilMat,foilMat]);
    lower.position.y=-.22;pack.add(lower);
-   const upper=new THREE.Mesh(new THREE.BoxGeometry(2.25,.56,.25),
-     [blackMat,blackMat,blackMat,blackMat,ripMat,blackMat]);
+   const upper=new THREE.Mesh(new THREE.BoxGeometry(2.25,.56,.09),
+     [foilEdge,foilEdge,foilEdge,foilEdge,ripMat,ripMat]);
    upper.position.y=1.64;pack.add(upper);
    const seam=new THREE.Mesh(new THREE.BoxGeometry(2.27,.035,.32),
      new THREE.MeshBasicMaterial({color:tier.hex,transparent:true,opacity:.77}));

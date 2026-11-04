@@ -132,7 +132,8 @@
    if(!ok||current!==token){setStatus("시연이 중단되었어.");return}
    playCount++;
    const realResult=lastOriginalCard&&selectedMode==="ultra"?
-    '<img class="lab-real-card" alt="'+h(player.name)+' 원본 도감 카드" src="'+lastOriginalCard.toDataURL("image/png")+'">':
+    '<div class="lab-real-card" role="img" aria-label="'+h(player.name)+' 원본 도감 카드">'+
+    '<img alt="" src="'+lastOriginalCard.toDataURL("image/png")+'"></div>':
     window.RKBOCardView.render(player);
    stage.innerHTML='<div class="lab-result">'+
     '<span class="lab-result-label">✦ '+h(player.tier)+' — REVEAL COMPLETE</span>'+
@@ -151,7 +152,7 @@
   }
  }
  function activateResultTilt(){
-  const card=stage.querySelector(".lab-result .lab-player-card");
+  const card=stage.querySelector(".lab-result .lab-player-card,.lab-result .lab-real-card");
   if(!card)return;
   function move(event){
    const bounds=card.getBoundingClientRect();

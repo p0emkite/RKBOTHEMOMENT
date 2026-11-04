@@ -100,15 +100,17 @@ function frame(){
 }
 const ULTRA_MODE_KEY="rtm-special-cinematic-mode-v3";
 function getCinematicMode(){
- try{return localStorage.getItem(ULTRA_MODE_KEY)==="ultra"?"ultra":"legacy"}
- catch(_){return "legacy"}
+ // RTM Ultra 3.0 is now the live default. Only a user's explicit legacy
+ // choice takes precedence, so the original reveal remains reversible.
+ try{return localStorage.getItem(ULTRA_MODE_KEY)==="legacy"?"legacy":"ultra"}
+ catch(_){return "ultra"}
 }
 function cinematicSettings(){
  const mode=getCinematicMode();
  return '<div class="rkbo-pack-cinematic-settings">'+
   '<label for="rkbo-cinematic-mode">🎬 특수 카드 연출</label>'+
   '<select id="rkbo-cinematic-mode" data-pack-cinematic-mode aria-label="특수 카드 개봉 연출">'+
-  '<option value="ultra"'+(mode==="ultra"?' selected':'')+'>3D 시네마틱 3.0 · 전체 화면</option>'+
+  '<option value="ultra"'+(mode==="ultra"?' selected':'')+'>3D 시네마틱 3.0 · 기본 연출</option>'+
   '<option value="legacy"'+(mode==="legacy"?' selected':'')+'>기존 연출 · 원복</option>'+
   '</select><small>추첨 확률·천장·보유 카드는 동일해요. 언제든 기존 연출로 바꿀 수 있습니다.</small></div>';
 }

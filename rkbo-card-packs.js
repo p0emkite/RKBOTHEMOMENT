@@ -224,7 +224,8 @@ function showCurrentReveal(){
  if(!draw){target.innerHTML='<div class="rkbo-pack-ready">팩 개봉이 완료되었습니다. 결과를 확인해 주시기 바랍니다.</div>';return}
  const p=cache.get(Number(draw.cardId.split("-")[0]))?.get(draw.cardId);
  const special=PRIORITIES[draw.grade]>=3;
- const card=renderPlayer(p),front=special?'<div class="rkbo-pack-flip">'+
+ const ultraDone=special&&getCinematicMode()==="ultra"&&root.RTMUltra?.getFallback?.()==="";
+ const card=renderPlayer(p),front=special&&!ultraDone?'<div class="rkbo-pack-flip">'+
   '<div class="rkbo-pack-flip-inner"><div class="rkbo-pack-flip-back" aria-label="선수 카드 뒷면"><img src="./assets/card-back.webp?v=rtm-20261031" alt="" draggable="false"></div>'+
   '<div class="rkbo-pack-flip-front">'+card+'</div></div></div>':card;
  target.innerHTML='<div class="rkbo-pack-reveal-heading rarity-'+esc(draw.grade)+'"><span>'+(cursor)+'/5</span><strong>'+esc(displayGrade(draw.grade))+'</strong>'+
@@ -240,8 +241,8 @@ async function showNext(){
  const value=draws[cursor],player=cache.get(Number(value.cardId.split("-")[0]))?.get(value.cardId);
  const stage=$("#rkbo-pack-stage"),special=PRIORITIES[value.grade]>=3;
  if(special&&stage){
-  if(root.RKBOPackCinematic?.play){
-   const ok=await root.RKBOPackCinematic.play(stage,value.grade,()=>token===revealToken&&!overlay.hidden,player);
+  if(root.RTMUltra?.play||root.RKBOPackCinematic?.play){
+   const ok=await runCinematic(stage,value.grade,()=>token===revealToken&&!overlay.hidden,player,packResult?.season||season);
    if(!ok){opening=false;return}
   }else{
    stage.innerHTML='<div class="rkbo-pack-prelude rarity-'+esc(value.grade)+'"><strong>'+esc(value.grade)+'</strong></div>';
@@ -255,7 +256,7 @@ async function showNext(){
  if(target)target.innerHTML='<div id="rkbo-pack-reveal"></div>';
  showCurrentReveal();
  if(special){
-  await wait(1650); // Complete the 3D back-to-front animation before accepting taps.
+  await wait(getCinematicMode()==="ultra"&&root.RTMUltra?.getFallback?.()===""?300:1650); // Ultra already completes its reveal.
   if(token!==revealToken||overlay.hidden){opening=false;return}
  }
  const btn=body?.querySelector(".rkbo-pack-controls button");
@@ -271,7 +272,7 @@ async function previewCinematic(grade){
  const buttons=dialog?.querySelectorAll(".rkbo-cine-test-controls button")||[];
  buttons.forEach(b=>b.disabled=true);
  try{
-  if(!stage||!root.RKBOPackCinematic?.play)throw Error("시네마틱 연출을 불러오지 못했습니다.");
+  if(!stage||(!root.RTMUltra?.play&&!root.RKBOPackCinematic?.play))throw Error("시네마틱 연출을 불러오지 못했습니다.");
   // Fixed 60th-season cards for visual-only administrator testing.
   const fixedCards={
    "코랄":{id:"60-SAM-투-004",grade:"코랄",rawName:"Fukutomi , Tsuki"},
@@ -285,18 +286,19 @@ async function previewCinematic(grade){
      player.rawName!==spec.rawName||(spec.specialKind&&player.specialKind!==spec.specialKind))
    throw Error("60차 삼성 "+grade+" 고정 테스트 카드를 찾지 못했습니다: "+spec.id);
   message("🧪 "+grade+" 연출 테스트 · 실제 카드 지급 없음");
-  const finished=await root.RKBOPackCinematic.play(stage,player.grade,
-   ()=>token===revealToken&&!overlay.hidden&&canPreviewCinematic(),player);
+  const finished=await runCinematic(stage,player.grade,
+   ()=>token===revealToken&&!overlay.hidden&&canPreviewCinematic(),player,60);
   if(!finished)return;
   const tone=SPECIAL_RARITIES.includes(player.grade)?"special":player.grade==="코랄"?"coral":"diamond";
+  const ultraDone=getCinematicMode()==="ultra"&&root.RTMUltra?.getFallback?.()==="";
+  const previewCard=ultraDone?renderPlayer(player):'<div class="rkbo-pack-flip"><div class="rkbo-pack-flip-inner">'+
+   '<div class="rkbo-pack-flip-back"><img src="./assets/card-back.webp?v=rtm-20261031" alt="" draggable="false"></div>'+
+   '<div class="rkbo-pack-flip-front">'+renderPlayer(player)+'</div></div></div>';
   stage.innerHTML='<div id="rkbo-pack-reveal">'+
    '<div class="rkbo-pack-reveal-heading rarity-'+esc(player.grade)+'"><span>🧪 TEST</span><strong>'+esc(player.grade)+'</strong><span>미지급</span></div>'+
-   '<div class="rkbo-pack-hover-shell is-floating"><div class="rkbo-pack-revealed-card is-'+tone+'">'+
-   '<div class="rkbo-pack-flip"><div class="rkbo-pack-flip-inner">'+
-   '<div class="rkbo-pack-flip-back"><img src="./assets/card-back.webp?v=rtm-20261031" alt="" draggable="false"></div>'+
-   '<div class="rkbo-pack-flip-front">'+renderPlayer(player)+'</div></div></div></div></div>'+
+   '<div class="rkbo-pack-hover-shell is-floating"><div class="rkbo-pack-revealed-card is-'+tone+'">'+previewCard+'</div></div>'+
    '<div class="rkbo-cine-preview-label">🧪 '+esc(player.name)+' · 연출 미리보기 · 실제 획득 아님</div></div>';
-  await wait(1650);
+  await wait(ultraDone?300:1650);
   if(token===revealToken&&!overlay.hidden&&canPreviewCinematic()){
    message("✅ "+grade+" 연출 테스트 완료 · 실제 개봉 확률 및 계정 기록 유지");
   }

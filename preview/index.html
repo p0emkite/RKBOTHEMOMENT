@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#040915">
+  <meta name="description" content="RKBO THE MOMENT 카드팩 시네마틱 2.0 — 기존 연출과 신규 연출을 실물 카드 지급 없이 체험하는 독립 테스트 페이지">
+  <title>RTM CINEMATIC LAB — 카드팩 개봉 연출 미리보기</title>
+  <base href="../">
+  <link rel="icon" href="./assets/rkbo-archive-logo.webp" type="image/webp">
+  <link rel="stylesheet" href="./rkbo-pack-cinematic.css?v=20261031-direct-board-v13">
+  <link rel="stylesheet" href="./preview/cinematic-next.css?v=20261104-lab1">
+  <link rel="stylesheet" href="./preview/lab.css?v=20261104-lab1">
+</head>
+<body>
+  <div class="ambient-grid" aria-hidden="true"></div>
+  <div class="ambient-glow" aria-hidden="true"></div>
+  <div class="shell">
+    <header class="site-head">
+      <a class="brand" href="./" title="RTM 홈으로">
+        <img src="./assets/rkbo-archive-logo.webp" alt="" width="43" height="43">
+        <span><b>RKBO THE MOMENT</b><small>VISUAL EXPERIENCE LAB</small></span>
+      </a>
+      <a class="back-link" href="./"><span>←</span> 기존 RTM으로 돌아가기</a>
+    </header>
+    <main>
+      <div class="intro">
+        <div class="kicker"><i></i> EXPERIMENTAL RELEASE <span>///</span> CINEMATIC v2.0</div>
+        <h1>THE NEXT <em>MOMENT.</em></h1>
+        <p class="lead">선수가 등장하는 그 순간까지, 하나의 쇼처럼.<br>새로운 RTM 카드팩 연출을 직접 비교하고 체험해 봐.</p>
+        <div class="pill-row">
+          <span>⚡ FULL-SCREEN REVEAL</span><span>◈ 3D CARD FLIP</span><span>✦ RARITY FX</span>
+        </div>
+      </div>
+      <div class="lab-layout">
+        <section class="theater-panel" aria-label="카드팩 시네마틱 시연 화면">
+          <div class="section-top">
+            <div class="eyebrow"><span class="pulse-dot"></span> RTM CINEMATIC STAGE <small id="stageLabel">READY FOR REVEAL</small></div>
+            <span class="test-label">DEMO ONLY</span>
+          </div>
+          <div class="theater">
+            <div class="rkbo-pack-stage" id="rkbo-pack-stage">
+              <div class="placeholder">
+                <div class="halo"></div><div class="pack-art"><span>RTM</span><strong>THE<br>MOMENT</strong><small>COLLECTOR'S PACK</small></div>
+                <p>YOUR MOMENT AWAITS</p>
+                <small>아래에서 등급을 선택하고 개봉해 봐!</small>
+              </div>
+            </div>
+          </div>
+          <div class="theater-foot">
+            <span class="status-led"><i></i> <span id="status" role="status" aria-live="polite">시네마틱 테스트 준비 완료</span></span>
+            <span id="counter">00 / 00</span>
+          </div>
+        </section>
+        <aside class="control-panel" aria-label="시연 컨트롤">
+          <div class="panel-heading"><span>01</span><div><small>CHOOSE YOUR EXPERIENCE</small><h2>연출 설정</h2></div></div>
+          <div class="control-block">
+            <label class="control-label" for="mode">OPENING MODE <span>연출 버전</span></label>
+            <div class="select-wrap"><select id="mode" aria-label="시네마틱 모드">
+              <option value="next">시네마틱 2.0 — 신규 연출</option>
+              <option value="legacy">시네마틱 1.0 — 기존 연출</option>
+            </select></div>
+            <p class="hint">한 번의 선택으로 기존 연출과 신규 연출을 비교할 수 있어.</p>
+          </div>
+          <div class="control-block">
+            <div class="control-label">CARD RARITY <span>테스트 등급</span></div>
+            <div class="rarity-grid" id="rarity-grid" role="group" aria-label="테스트 카드 등급 선택">
+              <button type="button" data-grade="코랄" data-color="coral"><span class="rarity-dot"></span> CORAL</button>
+              <button type="button" data-grade="다이아몬드" data-color="diamond" class="selected" aria-pressed="true"><span class="rarity-dot"></span> DIAMOND</button>
+              <button type="button" data-grade="드림" data-color="special"><span class="rarity-dot"></span> ALL-STAR</button>
+              <button type="button" data-grade="신인왕" data-color="special"><span class="rarity-dot"></span> ROY</button>
+              <button type="button" data-grade="MVP" data-color="special"><span class="rarity-dot"></span> MVP</button>
+            </div>
+          </div>
+          <div class="control-block options">
+            <label class="sound-switch" for="sound"><span><strong>시네마틱 효과음</strong><small>브라우저에서 합성되는 짧은 효과음</small></span><input type="checkbox" id="sound"><i aria-hidden="true"></i></label>
+          </div>
+          <button type="button" class="launch" id="launch"><span class="launch-glyph">▶</span><span><strong>시네마틱 재생</strong><small>LAUNCH THE REVEAL</small></span><span class="arrow">↗</span></button>
+          <button type="button" class="reset" id="reset">↺ 무대 초기화</button>
+          <div class="guardrail"><b>🔒 시연 전용 모드</b><p>이 페이지는 Supabase에 접속하거나 실제 카드를 추첨하지 않아. 보유 카드·확률·천장·개봉 기록은 전혀 변경되지 않아.</p></div>
+        </aside>
+      </div>
+      <div class="bottom-notice"><span>RTM / VISUAL PROTOTYPE</span><span>모바일 지원 · 기존 연출 언제든 선택 가능</span><span>BUILD 2026.11.04</span></div>
+    </main>
+  </div>
+  <script src="./rkbo-pack-cinematic.js?v=20261031-direct-board-v13"></script>
+  <script src="./preview/cinematic-next.js?v=20261104-lab1"></script>
+  <script src="./preview/lab.js?v=20261104-lab1"></script>
+</body>
+</html>

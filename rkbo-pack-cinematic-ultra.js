@@ -69,13 +69,22 @@
  // Slice the user's real pack artwork into the two independently animated foil parts.
  // Never typeset a new brand, season, or pack name when a real pack image is supplied.
  function packSlice(source,start,end){
-  const [c,ctx]=canvas(512,768);
-  const top=Math.floor(source.naturalHeight*start),height=Math.max(1,Math.ceil(source.naturalHeight*(end-start)));
-  ctx.drawImage(source,0,top,source.naturalWidth,height,0,0,c.width,c.height);
+  const sourceWidth=source.naturalWidth||source.width;
+  const sourceHeight=source.naturalHeight||source.height;
+  // Preserve the original uploaded pack's texels; never downscale to 512×768.
+  const top=Math.round(sourceHeight*start),bottom=Math.round(sourceHeight*end);
+  const partHeight=Math.max(1,bottom-top);
+  const scale=Math.min(1,2048/sourceWidth,2048/partHeight);
+  const [c,ctx]=canvas(Math.max(1,Math.round(sourceWidth*scale)),Math.max(1,Math.round(partHeight*scale)));
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+  ctx.drawImage(source,0,top,sourceWidth,partHeight,0,0,c.width,c.height);
   return c;
  }
  function exactCardBack(image){
-  const [c,ctx]=canvas(600,840);
+  const w=image.naturalWidth||image.width,h=image.naturalHeight||image.height;
+  const scale=Math.min(1,2048/Math.max(1,w),2048/Math.max(1,h));
+  const [c,ctx]=canvas(Math.max(1,Math.round(w*scale)),Math.max(1,Math.round(h*scale)));
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
   ctx.drawImage(image,0,0,c.width,c.height);
   return c;
  }
@@ -245,8 +254,12 @@
    const low=/(iPhone|Android|iPad|iPod)/i.test(navigator.userAgent)||root.innerWidth<700;
    const canvasNode=document.createElement("canvas");canvasNode.className="ultra-webgl";
    overlay.querySelector(".ultra-canvas-root").append(canvasNode);
-   renderer=new three.WebGLRenderer({canvas:canvasNode,alpha:true,antialias:!low,powerPreference:"high-performance"});
-   renderer.setPixelRatio(Math.min(root.devicePixelRatio||1,low?1.3:1.75));
+   renderer=new three.WebGLRenderer({canvas:canvasNode,alpha:true,antialias:true,powerPreference:low?"default":"high-performance"});
+   // Retina devices need more than 1.3 CSS-to-device pixels. Keep a GPU budget.
+   const dpr=Math.min(root.devicePixelRatio||1,low?2:2.5);
+   const budget=low?4000000:7200000;
+   const fit=Math.sqrt(budget/(Math.max(1,root.innerWidth)*Math.max(1,root.innerHeight)));
+   renderer.setPixelRatio(Math.max(.85,Math.min(dpr,fit)));
    renderer.outputColorSpace=three.SRGBColorSpace;
    renderer.toneMapping=three.ACESFilmicToneMapping;renderer.toneMappingExposure=1.65;
    const THREE=three;
@@ -261,7 +274,11 @@
    const glow=glowTexture(THREE);ownsTextures.push(glow);
    const canvasTexture=c=>{
     const tex=new THREE.CanvasTexture(c);
-    tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+    tex.colorSpace=THREE.SRGBColorSpace;
+    tex.magFilter=THREE.LinearFilter;
+    tex.minFilter=THREE.LinearMipmapLinearFilter;
+    tex.generateMipmaps=true;
+    tex.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());
     ownsTextures.push(tex);return tex;
    };
    const imageUrl=String(options?.packArtUrl||"").trim();
@@ -284,10 +301,12 @@
    gate.remove();
    overlay.dataset.phase="portal";
    const edgeMat=new THREE.MeshPhysicalMaterial({color:tier.hex,metalness:.95,roughness:.16});
-   const frontMat=new THREE.MeshPhysicalMaterial({map:frontMap,metalness:0,roughness:.78,clearcoat:.14,clearcoatRoughness:.5,side:THREE.FrontSide});
-   const reverseMat=new THREE.MeshPhysicalMaterial({map:backMap,metalness:.10,roughness:.55,clearcoat:.25,clearcoatRoughness:.4});
-   const foilMat=new THREE.MeshPhysicalMaterial({map:packMap,metalness:.12,roughness:.48,clearcoat:.24,clearcoatRoughness:.3});
-   const ripMat=new THREE.MeshPhysicalMaterial({map:ripMap,metalness:.18,roughness:.38,clearcoat:.34});
+   // Preserve exact published card/pack colors. Physical lighting was clipping
+   // text, foil and player art; the 3D meshes still move in world space.
+   const frontMat=new THREE.MeshBasicMaterial({map:frontMap,toneMapped:false,side:THREE.FrontSide});
+   const reverseMat=new THREE.MeshBasicMaterial({map:backMap,toneMapped:false});
+   const foilMat=new THREE.MeshBasicMaterial({map:packMap,toneMapped:false});
+   const ripMat=new THREE.MeshBasicMaterial({map:ripMap,toneMapped:false});
    const blackMat=new THREE.MeshStandardMaterial({color:0x10243f,metalness:.8,roughness:.28});
    const pack=new THREE.Group();scene.add(pack);
    const lower=new THREE.Mesh(new THREE.BoxGeometry(2.25,3.17,.22),
@@ -331,7 +350,7 @@
     velocity[i*4+3]=.3+Math.random()*1.6;
    }
    pGeo.setAttribute("position",new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));
-   const pMat=new THREE.PointsMaterial({size:low?.095:.085,map:glow,color:tier.hex,opacity:.9,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,depthTest:false,sizeAttenuation:true});
+   const pMat=new THREE.PointsMaterial({size:low?.075:.065,map:glow,color:tier.hex,opacity:.72,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,depthTest:true,sizeAttenuation:true});
    const particles=new THREE.Points(pGeo,pMat);scene.add(particles);
    const dustCount=low?150:370,dustPos=new Float32Array(dustCount*3);
    for(let i=0;i<dustCount;i++){dustPos[i*3]=(Math.random()-.5)*24;dustPos[i*3+1]=(Math.random()-.5)*15;dustPos[i*3+2]=-Math.random()*16-2}
@@ -384,11 +403,11 @@
     const pulse=Math.sin(t*10)*.5+.5;
     // Camera starts close to ground, orbits around the airborne foil pack, then pushes toward the card.
     const baseZ= t<2.4?mix(11.5,7.6,flight):t<4.1?mix(7.6,7.05,charge):mix(7.05,6.75,ascend);
-    const shake=(t>3.52&&t<4.42)?(.18*(1-between(t,3.6,4.4))):0;
+    const shake=(t>3.52&&t<4.42)?(.048*(1-between(t,3.6,4.4))):0;
     const px=layerTime.pointerX*.28,py=layerTime.pointerY*.18;
-    camera.position.x=Math.sin(t*1.05)*(.55*(1-flip))+px*hero+(Math.random()-.5)*shake;
-    camera.position.y=mix(-.3,.2,flight)+Math.cos(t*.95)*.16-py*hero+(Math.random()-.5)*shake;
-    camera.position.z=baseZ+(Math.random()-.5)*shake*.7;
+    camera.position.x=Math.sin(t*1.05)*(.55*(1-flip))+px*hero+Math.sin(t*34)*shake;
+    camera.position.y=mix(-.3,.2,flight)+Math.cos(t*.95)*.16-py*hero+Math.cos(t*41)*shake;
+    camera.position.z=baseZ+Math.sin(t*28)*shake*.35;
     camera.lookAt(0,0,0);
     // Foil pack is a true 3D object with an independent tear-off section.
     pack.visible=t<5.25;
@@ -439,8 +458,8 @@
      positions[3*i+2]=velocity[i*4+2]*.48+Math.cos(ang*.6)*.85+expelled*.47;
     }
     pGeo.attributes.position.needsUpdate=true;
-    pMat.opacity=clamp(.45+charge*.5+hero*.2,0,1);
-    pMat.size=(low?.095:.085)*(1+charge*.3+burst*.65);
+    pMat.opacity=clamp((.34+charge*.32)*(1-hero*.78),.08,.75);
+    pMat.size=(low?.075:.065)*(1+charge*.2+burst*.4);
     particles.rotation.y=t*.08;particles.scale.setScalar(cloud);
     // Independent 3D metal fragments with real depth (instanced to keep draw calls low).
     shards.visible=t>3.42&&t<7.4;

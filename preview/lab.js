@@ -10,7 +10,8 @@
  const mode=document.querySelector("#mode"),sound=document.querySelector("#sound"),launch=document.querySelector("#launch"),
  reset=document.querySelector("#reset"),stage=document.querySelector("#rkbo-pack-stage"),status=document.querySelector("#status"),
  stageLabel=document.querySelector("#stageLabel"),counter=document.querySelector("#counter"),choices=[...document.querySelectorAll("[data-grade]")];
- const engine=window.RKBOPackCinematicNext,legacy=window.RKBOPackCinematic;
+ const engine=window.RKBOPackCinematicNext,legacy=window.RKBOPackCinematic,ultra=window.RTMUltra;
+ const MODE_KEY="rtm-lab-selected-mode-v3";
  let grade="다이아몬드",busy=false,token=0,playCount=0;
  const h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  window.RKBOCardView={
@@ -49,18 +50,26 @@
  }
  async function play(){
   if(busy)return;
-  if(!engine&&!legacy){setStatus("시네마틱 스크립트 로딩 실패 — 페이지를 새로고침해 주세요.");return}
+  if(!engine&&!legacy&&!ultra){setStatus("시네마틱 스크립트 로딩 실패 — 페이지를 새로고침해 주세요.");return}
   const current=++token,player={...samples[grade]},selectedMode=mode.value;
-  engine?.setMode?.(selectedMode);
+  engine?.setMode?.(selectedMode==="legacy"?"legacy":"next");
   engine?.setSound?.(sound.checked);
+  ultra?.setSound?.(sound.checked);
   engine?.unlockAudio?.();
+  ultra?.unlockAudio?.();
   setBusy(true);
-  stageLabel.textContent=selectedMode==="next"?"CINEMATIC 2.0 RUNNING":"LEGACY CINEMATIC RUNNING";
+  stageLabel.textContent=selectedMode==="ultra"?"REAL 3D CINEMATIC 3.0":selectedMode==="next"?"CINEMATIC 2.0 RUNNING":"LEGACY CINEMATIC RUNNING";
   setStatus(player.tier+" 등급 연출 재생 중…");
   try{
    stage.innerHTML='<div class="lab-running" aria-hidden="true"></div>';
-   const currentEngine=engine||legacy;
-   const ok=await currentEngine.play(stage,grade,()=>current===token,player);
+   const currentEngine=selectedMode==="ultra"?(ultra||engine||legacy):selectedMode==="legacy"?(legacy||engine):(engine||legacy);
+   const ok=await currentEngine.play(stage,grade,()=>current===token,player,{
+    onPhase:phase=>{
+     if(current!==token)return;
+     const messages={portal:"야구장 입장",flight:"3D 카드팩 진입",charge:"등급 에너지 충전",rupture:"카드팩 파열",ascend:"선수 카드 등장",flip:"3D 카드 회전",hero:"레전드 공개"};
+     if(messages[phase])setStatus("🎬 "+messages[phase]+" · "+player.tier);
+    }
+   });
    if(!ok||current!==token){setStatus("시연이 중단되었어.");return}
    playCount++;
    stage.innerHTML='<div class="lab-result">'+
@@ -68,7 +77,8 @@
     window.RKBOCardView.render(player)+'</div>';
    counter.textContent=String(playCount).padStart(2,"0")+" / "+String(playCount).padStart(2,"0");
    stageLabel.textContent="REVEAL COMPLETE";
-   setStatus("✅ "+player.tier+" 등급 연출 완료 · 다시 재생할 수 있어!");
+   const usedFallback=selectedMode==="ultra"?ultra?.getFallback?.():"";
+   setStatus(usedFallback?"3D 엔진을 사용할 수 없어 2.0으로 대체했어: "+usedFallback:"✅ "+player.tier+" 등급 연출 완료 · 다시 재생할 수 있어!");
   }catch(e){
    console.error("[RTM Lab] preview playback failed",e);
    setStatus("연출 재생 오류: "+(e?.message||"알 수 없는 오류"));
@@ -83,13 +93,24 @@
   initialStage();
   setStatus("무대를 초기화했어. 새 등급을 선택할 수 있어.");
  }
- if(!engine||!legacy)console.warn("[RTM Lab] cinematic component missing",{engine:!!engine,legacy:!!legacy});
- mode.value=engine?.getMode?.()||"next";
+ if(!engine||!legacy||!ultra)console.warn("[RTM Lab] some cinematic component missing",{engine:!!engine,legacy:!!legacy,ultra:!!ultra});
+ let saved="ultra";try{saved=localStorage.getItem(MODE_KEY)||"ultra"}catch(_){}
+ mode.value=["ultra","next","legacy"].includes(saved)?saved:"ultra";
  sound.checked=!!engine?.getSound?.();
  choices.forEach(button=>button.addEventListener("click",()=>selectGrade(button.dataset.grade)));
- mode.addEventListener("change",()=>{engine?.setMode?.(mode.value);setStatus(mode.value==="next"?"시네마틱 2.0 선택 완료":"기존 시네마틱 1.0 선택 완료")});
- sound.addEventListener("change",()=>{engine?.setSound?.(sound.checked);if(sound.checked)engine?.unlockAudio?.();setStatus(sound.checked?"효과음 켜짐":"효과음 꺼짐")});
+ mode.addEventListener("change",()=>{
+  engine?.setMode?.(mode.value==="legacy"?"legacy":"next");
+  try{localStorage.setItem(MODE_KEY,mode.value)}catch(_){}
+  const labels={ultra:"진짜 3D 시네마틱 3.0",next:"시네마틱 2.0",legacy:"기존 시네마틱 1.0"};
+  setStatus(labels[mode.value]+" 선택 완료");
+ });
+ sound.addEventListener("change",()=>{
+  engine?.setSound?.(sound.checked);ultra?.setSound?.(sound.checked);
+  if(sound.checked){engine?.unlockAudio?.();ultra?.unlockAudio?.()}
+  setStatus(sound.checked?"효과음 켜짐":"효과음 꺼짐");
+ });
  launch.addEventListener("click",play);
+ launch.addEventListener("pointerenter",()=>{if(mode.value==="ultra")ultra?.preload?.().catch(()=>{})});
  reset.addEventListener("click",resetStage);
  selectGrade(grade);
  window.RTMCinematicLab={getState:()=>({grade,mode:mode.value,sound:sound.checked,busy,playCount})};

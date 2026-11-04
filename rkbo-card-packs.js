@@ -98,6 +98,17 @@ function frame(){
  '<div class="rkbo-pack-body" id="rkbo-pack-body"></div><p class="rkbo-pack-status" id="rkbo-pack-status" role="status"></p>';
  dialog.querySelectorAll("[data-pack-tab]").forEach(b=>b.classList.toggle("active",b.dataset.packTab===tab));
 }
+function cinematicControls(){
+ const engine=root.RKBOPackCinematicNext;
+ const mode=engine?.getMode?.()||"legacy";
+ const sound=!!engine?.getSound?.();
+ return '<div class="rkbo-pack-cinematic-settings" aria-label="카드 개봉 연출 설정">'+
+  '<label>🎬 개봉 연출 <select data-pack-cinematic-mode aria-label="개봉 연출 선택">'+
+  '<option value="next"'+(mode==="next"?' selected':'')+'>신규 시네마틱</option>'+
+  '<option value="legacy"'+(mode==="legacy"?' selected':'')+'>기존 연출 (원복)</option></select></label>'+
+  '<label><input type="checkbox" data-pack-cinematic-sound'+(sound?' checked':'')+'>🔊 효과음</label>'+
+  '<small>설정은 이 브라우저에 저장됩니다. 언제든 기존 연출로 전환할 수 있습니다. 추첨·천장·보유 카드에는 영향이 없습니다.</small></div>';
+}
 function renderPack(){
  const body=$("#rkbo-pack-body");
  if(!body)return;
@@ -109,7 +120,7 @@ function renderPack(){
  '<div><small>연속 다이아·특수 미획득</small><strong>'+(packsState?.no_diamond_streak||0)+'/49</strong></div>'+
  '<div><small>보유 종류</small><strong>'+owned.size+'종</strong></div></section>'+
  '<div class="rkbo-pack-odds"><b>'+esc(packFor(season)?.label||season+'차 카드팩')+'</b><span>브론즈 50% · 실버 32% · 골드 16% · 코랄 1% · 다이아몬드 0.5% · 특수등급 0.5%</span>'+
- '</div>'+
+ '</div>'+cinematicControls()+
  '<div class="rkbo-pack-season-toggle"><label for="rkbo-pack-season">카드팩 선택</label><select id="rkbo-pack-season" data-pack-season>'+
  packChoices.filter(p=>p.active).map(p=>'<option value="'+p.season+'"'+(p.season===season?' selected':'')+'>'+esc(p.label)+'</option>').join("")+'</select></div>'+ 
  '<div class="rkbo-pack-stage" id="rkbo-pack-stage" '+(draws.length?'data-pack="next" title="터치해서 다음 카드 공개"':'')+'><div class="rkbo-pack-aura"></div>'+
@@ -193,7 +204,8 @@ function showCurrentReveal(){
  if(!draw){target.innerHTML='<div class="rkbo-pack-ready">팩 개봉이 완료되었습니다. 결과를 확인해 주시기 바랍니다.</div>';return}
  const p=cache.get(Number(draw.cardId.split("-")[0]))?.get(draw.cardId);
  const special=PRIORITIES[draw.grade]>=3;
- const card=renderPlayer(p),front=special?'<div class="rkbo-pack-flip">'+
+ const modern=special&&root.RKBOPackCinematicNext?.getMode?.()==="next";
+ const card=renderPlayer(p),front=special&&!modern?'<div class="rkbo-pack-flip">'+
   '<div class="rkbo-pack-flip-inner"><div class="rkbo-pack-flip-back" aria-label="선수 카드 뒷면"><img src="./assets/card-back.webp?v=rtm-20261031" alt="" draggable="false"></div>'+
   '<div class="rkbo-pack-flip-front">'+card+'</div></div></div>':card;
  target.innerHTML='<div class="rkbo-pack-reveal-heading rarity-'+esc(draw.grade)+'"><span>'+(cursor)+'/5</span><strong>'+esc(displayGrade(draw.grade))+'</strong>'+
@@ -209,8 +221,9 @@ async function showNext(){
  const value=draws[cursor],player=cache.get(Number(value.cardId.split("-")[0]))?.get(value.cardId);
  const stage=$("#rkbo-pack-stage"),special=PRIORITIES[value.grade]>=3;
  if(special&&stage){
-  if(root.RKBOPackCinematic?.play){
-   const ok=await root.RKBOPackCinematic.play(stage,value.grade,()=>token===revealToken&&!overlay.hidden,player);
+  const cinema=root.RKBOPackCinematicNext||root.RKBOPackCinematic;
+  if(cinema?.play){
+   const ok=await cinema.play(stage,value.grade,()=>token===revealToken&&!overlay.hidden,player);
    if(!ok){opening=false;return}
   }else{
    stage.innerHTML='<div class="rkbo-pack-prelude rarity-'+esc(value.grade)+'"><strong>'+esc(value.grade)+'</strong></div>';
@@ -224,7 +237,7 @@ async function showNext(){
  if(target)target.innerHTML='<div id="rkbo-pack-reveal"></div>';
  showCurrentReveal();
  if(special){
-  await wait(1650); // Complete the 3D back-to-front animation before accepting taps.
+  await wait(root.RKBOPackCinematicNext?.getMode?.()==="next"?350:1650); // V2 has already revealed the card.
   if(token!==revealToken||overlay.hidden){opening=false;return}
  }
  const btn=body?.querySelector(".rkbo-pack-controls button");
@@ -240,7 +253,8 @@ async function previewCinematic(grade){
  const buttons=dialog?.querySelectorAll(".rkbo-cine-test-controls button")||[];
  buttons.forEach(b=>b.disabled=true);
  try{
-  if(!stage||!root.RKBOPackCinematic?.play)throw Error("시네마틱 연출을 불러오지 못했습니다.");
+  const cinema=root.RKBOPackCinematicNext||root.RKBOPackCinematic;
+  if(!stage||!cinema?.play)throw Error("시네마틱 연출을 불러오지 못했습니다.");
   // Fixed 60th-season cards for visual-only administrator testing.
   const fixedCards={
    "코랄":{id:"60-SAM-투-004",grade:"코랄",rawName:"Fukutomi , Tsuki"},
@@ -254,19 +268,20 @@ async function previewCinematic(grade){
      player.rawName!==spec.rawName||(spec.specialKind&&player.specialKind!==spec.specialKind))
    throw Error("60차 삼성 "+grade+" 고정 테스트 카드를 찾지 못했습니다: "+spec.id);
   message("🧪 "+grade+" 연출 테스트 · 실제 카드 지급 없음");
-  const finished=await root.RKBOPackCinematic.play(stage,player.grade,
+  const finished=await cinema.play(stage,player.grade,
    ()=>token===revealToken&&!overlay.hidden&&canPreviewCinematic(),player);
   if(!finished)return;
   const tone=SPECIAL_RARITIES.includes(player.grade)?"special":player.grade==="코랄"?"coral":"diamond";
-  stage.innerHTML='<div id="rkbo-pack-reveal">'+
-   '<div class="rkbo-pack-reveal-heading rarity-'+esc(player.grade)+'"><span>🧪 TEST</span><strong>'+esc(player.grade)+'</strong><span>미지급</span></div>'+
-   '<div class="rkbo-pack-hover-shell is-floating"><div class="rkbo-pack-revealed-card is-'+tone+'">'+
-   '<div class="rkbo-pack-flip"><div class="rkbo-pack-flip-inner">'+
-   '<div class="rkbo-pack-flip-back"><img src="./assets/card-back.webp?v=rtm-20261031" alt="" draggable="false"></div>'+
-   '<div class="rkbo-pack-flip-front">'+renderPlayer(player)+'</div></div></div></div></div>'+
-   '<div class="rkbo-cine-preview-label">🧪 '+esc(player.name)+' · 연출 미리보기 · 실제 획득 아님</div></div>';
-  await wait(1650);
-  if(token===revealToken&&!overlay.hidden&&canPreviewCinematic()){
+   const modern=root.RKBOPackCinematicNext?.getMode?.()==="next";
+   const previewCard=modern?renderPlayer(player):'<div class="rkbo-pack-flip"><div class="rkbo-pack-flip-inner">'+
+    '<div class="rkbo-pack-flip-back"><img src="./assets/card-back.webp?v=rtm-20261031" alt="" draggable="false"></div>'+
+    '<div class="rkbo-pack-flip-front">'+renderPlayer(player)+'</div></div></div>';
+   stage.innerHTML='<div id="rkbo-pack-reveal">'+
+    '<div class="rkbo-pack-reveal-heading rarity-'+esc(player.grade)+'"><span>🧪 TEST</span><strong>'+esc(player.grade)+'</strong><span>미지급</span></div>'+
+    '<div class="rkbo-pack-hover-shell is-floating"><div class="rkbo-pack-revealed-card is-'+tone+'">'+previewCard+'</div></div>'+
+    '<div class="rkbo-cine-preview-label">🧪 '+esc(player.name)+' · 연출 미리보기 · 실제 획득 아님</div></div>';
+   await wait(modern?350:1650);
+   if(token===revealToken&&!overlay.hidden&&canPreviewCinematic()){
    message("✅ "+grade+" 연출 테스트 완료 · 실제 개봉 확률 및 계정 기록 유지");
   }
  }catch(e){
@@ -519,10 +534,10 @@ function init(){
   const action=target.dataset.pack;
   if(action==="close"){close();return}
   if(action==="login"){close();root.RKBOOnline?.open?.("account");return}
-  if(action==="preview"){await previewCinematic(target.dataset.grade);return}
+  if(action==="preview"){root.RKBOPackCinematicNext?.unlockAudio?.();await previewCinematic(target.dataset.grade);return}
   if(action==="preview-reset"){if(!opening&&canPreviewCinematic()){previewActive=false;renderPack()}return}
-  if(action==="open"){previewActive=false;await openPack();return}
-  if(action==="next"){await showNext();return}
+  if(action==="open"){previewActive=false;root.RKBOPackCinematicNext?.unlockAudio?.();await openPack();return}
+  if(action==="next"){root.RKBOPackCinematicNext?.unlockAudio?.();await showNext();return}
   if(action==="share"){await savePackSharePNG(target);return}
   if(action==="reset"){draws=[];cursor=0;packResult=null;await showTab("pack");return}
   if(action==="collection"){await showTab("collection");return}
@@ -551,6 +566,15 @@ function init(){
   catch(err){message(err.message);alert("팩 설정 실패: "+err.message)}
  });
  dialog.addEventListener("change",e=>{
+   if(e.target.matches("[data-pack-cinematic-mode]")){
+    const mode=e.target.value;
+    if(root.RKBOPackCinematicNext?.setMode?.(mode))message(mode==="legacy"?"기존 카드팩 연출로 전환했습니다.":"신규 시네마틱 연출로 전환했습니다.");
+   }
+   if(e.target.matches("[data-pack-cinematic-sound]")){
+    root.RKBOPackCinematicNext?.setSound?.(e.target.checked);
+    if(e.target.checked)root.RKBOPackCinematicNext?.unlockAudio?.();
+    message(e.target.checked?"연출 효과음이 켜졌습니다.":"연출 효과음이 꺼졌습니다.");
+   }
   if(e.target.matches("[data-pack-filter]")){collectionFilter=e.target.value;collectionLimit=36;renderCollection()}
   if(e.target.matches("[data-admin-season]")){adminSeason=Number(e.target.value);renderAdmin()}
   if(e.target.matches("#rkbo-admin-image")){

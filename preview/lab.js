@@ -77,6 +77,7 @@
     window.RKBOCardView.render(player)+'</div>';
    counter.textContent=String(playCount).padStart(2,"0")+" / "+String(playCount).padStart(2,"0");
    stageLabel.textContent="REVEAL COMPLETE";
+   activateResultTilt();
    const usedFallback=selectedMode==="ultra"?ultra?.getFallback?.():"";
    setStatus(usedFallback?"3D 엔진을 사용할 수 없어 2.0으로 대체했어: "+usedFallback:"✅ "+player.tier+" 등급 연출 완료 · 다시 재생할 수 있어!");
   }catch(e){
@@ -86,6 +87,26 @@
   }finally{
    if(current===token)setBusy(false);
   }
+ }
+ function activateResultTilt(){
+  const card=stage.querySelector(".lab-result .lab-player-card");
+  if(!card)return;
+  function move(event){
+   const bounds=card.getBoundingClientRect();
+   const x=Math.max(-1,Math.min(1,((event.clientX-bounds.left)/bounds.width-.5)*2));
+   const y=Math.max(-1,Math.min(1,((event.clientY-bounds.top)/bounds.height-.5)*2));
+   card.style.setProperty("--tilt-y",(x*16).toFixed(2)+"deg");
+   card.style.setProperty("--tilt-x",(-y*13).toFixed(2)+"deg");
+   card.style.setProperty("--shine-x",((x+1)*50).toFixed(1)+"%");
+   card.style.setProperty("--shine-y",((y+1)*50).toFixed(1)+"%");
+  }
+  function rest(){
+   card.style.setProperty("--tilt-x","0deg");
+   card.style.setProperty("--tilt-y","0deg");
+  }
+  card.addEventListener("pointermove",move);
+  card.addEventListener("pointerleave",rest);
+  card.addEventListener("pointercancel",rest);
  }
  function resetStage(){
   if(busy)return;

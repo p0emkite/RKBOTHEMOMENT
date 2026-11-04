@@ -117,3 +117,22 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 @media(max-width:1020px){.shell{padding:0 24px}.lab-layout{grid-template-columns:1fr}.control-panel{max-width:none}.rarity-grid{grid-template-columns:repeat(5,minmax(0,1fr))}.rarity-grid button{justify-content:center;padding:8px 5px}.rarity-grid button:last-child{grid-column:auto}.control-panel{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}.panel-heading,.control-panel .options,.launch,.guardrail{grid-column:1/-1}.control-block{margin-bottom:17px}.reset{grid-column:1/-1}.intro{padding-top:48px}}
 @media(max-width:650px){.shell{padding:0 12px}.site-head{height:74px}.brand b{font-size:15px}.brand small{font-size:8px;letter-spacing:.14em}.brand img{height:36px;width:36px}.back-link{font-size:0;gap:0}.back-link span{font-size:25px}.intro{padding:38px 4px 25px}.intro h1{font-size:clamp(51px,13vw,75px);margin:16px 0 10px}.lead{font-size:12px}.kicker{font-size:10px;letter-spacing:.14em}.pill-row{gap:5px;margin-top:17px}.pill-row span{font-size:9px;padding:5px 7px}.lab-layout{gap:13px}.theater-panel{padding:12px 10px;border-radius:12px}.eyebrow{font-size:11px;gap:6px}.eyebrow small{font-size:9px}.test-label{font-size:9px}.rkbo-pack-stage{height:370px;min-height:370px}.theater-foot{font-size:10px}.control-panel{border-radius:12px;display:block;padding:18px}.panel-heading{padding-bottom:14px;margin-bottom:19px}.rarity-grid{grid-template-columns:repeat(2,1fr)}.rarity-grid button:last-child{grid-column:1/-1}.bottom-notice{font-size:9px}.lab-result .player-card{width:210px!important;height:288px!important}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important}.pack-art:before{animation:none!important}}
+/* 750x1050 card-export canvas — exactly the same archive art as live export. */
+.lab-result .lab-real-card{
+ width:min(235px,60vw);aspect-ratio:5/7;position:relative;
+ border-radius:14px;overflow:hidden;background:#091526;
+ box-shadow:0 0 38px #90ecff44,0 24px 55px #0009;
+ transform-style:preserve-3d;will-change:transform;
+ transform:perspective(900px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg));
+ transition:transform .18s ease,box-shadow .18s ease;cursor:grab;
+}
+.lab-result .lab-real-card img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
+.lab-result .lab-real-card:after{
+ content:"";position:absolute;inset:0;pointer-events:none;
+ background:radial-gradient(ellipse 70% 50% at var(--shine-x,50%) var(--shine-y,50%),#ffffff38,transparent 80%);
+ mix-blend-mode:screen;opacity:.7;
+}
+.lab-result .lab-real-card:hover{box-shadow:0 0 55px #90ecff66,0 30px 60px #000c}
+@media(prefers-reduced-motion:reduce){
+ .lab-result .lab-real-card{transform:none;transition:none}
+}

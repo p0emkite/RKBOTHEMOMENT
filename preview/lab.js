@@ -29,23 +29,23 @@
    if(!raw)throw Error("60차 도감의 원본 선수 데이터를 찾지 못했어요.");
    const players=JSON.parse(raw);
    const map=new Map(players.map(p=>[p.id,p]));
-   root.RKBOArt={
+   window.RKBOArt={
     imageState:p=>{
      const state=photos.images?.[p.id]||photos.images?.[String(p.id).replace(/-SPECIAL-[A-Z]+$/,"")]||{};
      return {...state,url:state.path?absolute(state.path):""};
     }
    };
-   root.RKBOTeamBackground={
+   window.RKBOTeamBackground={
     imageState:p=>{
      const state=backgrounds.teams?.[p.team]||{};
      return {...state,url:state.path?absolute(state.path):""};
     }
    };
-   root.RKBOTeamBrand={
+   window.RKBOTeamBrand={
     code:p=>p.team,
     logo:p=>absolute("assets/teams/"+p.team+(p.team==="NC"?".png":".svg"))
    };
-   root.RKBOCardSpecials={
+   window.RKBOCardSpecials={
     icon:k=>absolute("assets/special-emblems/"+k+".webp"),
     backgroundFor:p=>["ROY","MVP","RELIEF"].includes(p.specialKind)?{
      url:absolute("assets/special-backgrounds/"+p.specialKind+".webp"),overlay:0,zoom:1,x:0,y:0
@@ -56,13 +56,13 @@
   return demoAssetsPromise;
  }
  async function exactPreviewCard(sample){
-  if(!root.RKBOCardExport?.make)throw Error("원본 도감 카드 생성기를 불러오지 못했어요.");
+  if(!window.RKBOCardExport?.make)throw Error("원본 도감 카드 생성기를 불러오지 못했어요.");
   const baseId=sample.id.replace(/-SPECIAL-[A-Z]+$/,"");
   const map=await demoAssets(),base=map.get(baseId);
   if(!base)throw Error("도감에서 선수를 찾지 못했어요: "+baseId);
   const player={...base,id:sample.id,grade:sample.grade};
   if(sample.specialKind)player.specialKind=sample.specialKind;
-  const image=await root.RKBOCardExport.make(player,{gold_border:false,prism:false});
+  const image=await window.RKBOCardExport.make(player,{gold_border:false,prism:false});
   lastOriginalCard=image;
   return image;
  }

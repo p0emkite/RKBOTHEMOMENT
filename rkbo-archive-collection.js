@@ -46,7 +46,7 @@ function upgradeButtons(id,inv){
  return actions.join("");
 }
 function inventoryMarkup(id,modal=false){
- const inv=inventory.get(id),collected=owned.has(id),count=Math.max(0,Number(inv?.quantity)||0);
+ const inv=inventory.get(id),collected=owned.has(id),count=Math.max(0,Number(inv?.quantity)||0)+(inv?.gold_border||inv?.prism?1:0);
  if(!collected){
   return '<div class="rkbo-archive-owned-line is-missing">🔒 미수집 카드</div>'+
    (modal?'<p class="rkbo-archive-owned-description">카드팩에서 획득하면 여기에 보유 수량과 강화 기능이 표시됩니다.</p>':'');
@@ -55,7 +55,7 @@ function inventoryMarkup(id,modal=false){
    (inv?.gold_border?'<span class="rkbo-archive-earned is-gold">✨ 금테</span>':'')+
    (inv?.prism?'<span class="rkbo-archive-earned is-prism">🌈 프리즘</span>':'')+
    '</div><div class="rkbo-archive-upgrade-actions">'+upgradeButtons(id,inv)+'</div>'+
-   (modal?'<p class="rkbo-archive-owned-description">금테는 동일 카드 5장, 프리즘은 10장을 소모하며 한 번 적용하면 영구 유지됩니다.</p>':'');
+   (modal?'<p class="rkbo-archive-owned-description">금테는 동일 카드 5장, 프리즘은 10장을 소모해 영구 해금합니다. 보유 카드가 0장이 되어도 해금 기록은 남으며, 같은 카드를 다시 획득하면 자동 적용됩니다.</p>':'');
 }
 function galleryState(card){
  const id=card.dataset.id;

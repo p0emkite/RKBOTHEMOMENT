@@ -161,3 +161,18 @@
 @media(prefers-reduced-motion:reduce){
  .rtm-ultra .ultra-veil:after{animation:none!important}
 }
+
+/* Original door sheet: 1248×526. It was being squeezed into a mobile 50vw
+   panel while forced to full screen height. Keep its source aspect ratio:
+   background-size is 250% × 100%, thus panel width should be 0.949 × height. */
+.rtm-ultra .rtm-ultra-gate .rkbo-cine-photo-door{
+ width:max(50.3%, calc(100dvh * .949));
+}
+.rtm-ultra .rtm-ultra-gate .rkbo-cine-photo-door.left{
+ left:calc(50% - max(50.3%, calc(100dvh * .949)));
+ right:auto;
+}
+.rtm-ultra .rtm-ultra-gate .rkbo-cine-photo-door.right{
+ right:calc(50% - max(50.3%, calc(100dvh * .949)));
+ left:auto;
+}

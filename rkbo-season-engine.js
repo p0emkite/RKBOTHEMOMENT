@@ -54,6 +54,17 @@ function percentile(values,x){if(!values.length)return .5;
  hi=values.length;while(lo<hi){let mid=(lo+hi)>>1;if(values[mid]<=x)lo=mid+1;else hi=mid}return (first+lo)/(2*values.length)
 }
 const sortNum=a=>a.slice().sort((a,b)=>a-b);
+// Total innings and innings per appearance yield comparable SP/RP endurance.
+function workloadStamina(p){
+ const s=p?.stats||{};
+ const innings=Number.isFinite(Number(s.IP_real))?Math.max(0,Number(s.IP_real)):ip(s.IP);
+ const games=Math.max(1,n(s.G));
+ return clamp(Math.round(50+34*Math.min(1,innings/190)+14*Math.min(1,(innings/games)/6.5)),50,98);
+}
+function applyPitcherStamina(cards){
+ for(const p of cards||[])if(p?.type==='투수'&&p.stats&&p.ratings)p.ratings['체력']=workloadStamina(p);
+ return cards;
+}
 function grade(ovr){return ovr>=91?'다이아몬드':ovr>=84?'코랄':ovr>=75?'골드':ovr>=65?'실버':'브론즈'}
 function scoreSeason(players){
  const batters=players.filter(p=>p.type==='타자'),pitchers=players.filter(p=>p.type==='투수');
@@ -84,9 +95,7 @@ function scoreSeason(players){
     p.unavailable=['해당 시즌 수비 기록 없음','실제 달리기 속도 없음'];
     p.derived={'OPS':round(p.stats.Obp+p.stats.Slg,3),'ISO':round(p.indicators.ISO,3),'HR/AB':round(p.indicators.HR_AB,4),'BB/(AB+BB)':round(p.indicators.BB_ABBB,4),'K/(AB+BB)':round(p.indicators.K_ABBB,4),'도루성공률':p.indicators.SB_PCT===null?null:round(p.indicators.SB_PCT,3)};
    }else{
-    const staminaKey=p.pos==='SP'?'IP_PER_GS':'IP_PER_G';
-    const comparable=pool.filter(o=>o.pos===p.pos).map(o=>o.adjusted[staminaKey]);
-    const stamina=comparable.length>=4?clamp(Math.round(50+48*percentile(sortNum(comparable),p.adjusted[staminaKey])),50,98):score(p,staminaKey);
+    const stamina=workloadStamina(p);
     r={'구위':score(p,'K9'),'제구':score(p,'BB9',true),'피안타 억제':score(p,'H9',true),'피홈런 억제':score(p,'HR9',true),'체력':stamina};
     p.eraRating=score(p,'ERA',true);
     p.unavailable=['구속','변화구','실제 구위'];
@@ -151,5 +160,5 @@ function packSeason(players){
  // Derived data is kept for the player detail stats, but calculation scratchpad is omitted.
  return players.map(p=>({id:p.id,season:p.season,team:p.team,teamLabel:p.teamLabel,name:p.name,rawName:p.rawName,englishName:p.englishName,type:p.type,pos:p.pos,stats:p.stats,ratings:p.ratings,derived:p.derived,skillIndex:p.skillIndex,ovr:p.ovr,grade:p.grade,rank:p.rank,fieldPrimary:null}));
 }
-root.RKBOSeasonEngine={fromWorkbook:engine,parseRows:workbookRows,parseHTML:htmlPlayers,verify:checkSupplemental,pack:packSeason};
+root.RKBOSeasonEngine={fromWorkbook:engine,parseRows:workbookRows,parseHTML:htmlPlayers,verify:checkSupplemental,pack:packSeason,applyStamina:applyPitcherStamina,workloadStamina};
 })(typeof window==='undefined'?globalThis:window);

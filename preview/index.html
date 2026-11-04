@@ -10,8 +10,8 @@
   <link rel="icon" href="./assets/rkbo-archive-logo.webp" type="image/webp">
   <link rel="stylesheet" href="./rkbo-pack-cinematic.css?v=20261031-direct-board-v13">
   <link rel="stylesheet" href="./preview/cinematic-next.css?v=20261104-lab1">
-  <link rel="stylesheet" href="./preview/lab.css?v=20261104-lab1">
-  <link rel="stylesheet" href="./preview/cinematic-ultra.css?v=20261104-ultra2">
+  <link rel="stylesheet" href="./preview/lab.css?v=20261104-real-assets-v1">
+  <link rel="stylesheet" href="./rkbo-pack-cinematic-ultra.css?v=rtm-20261104-ultra-real-v1">
 </head>
 <body>
   <div class="ambient-grid" aria-hidden="true"></div>
@@ -62,7 +62,7 @@
               <option value="next">시네마틱 2.0 — 이전 연출</option>
               <option value="legacy">시네마틱 1.0 — 기존 연출</option>
             </select></div>
-            <p class="hint">3.0은 진짜 3D 모델, WebGL 카메라와 광원·파편을 사용해. 1.0·2.0은 그대로 보존되어 있어. 기기에서 WebGL을 지원하지 않거나 3D 라이브러리를 불러오지 못하면 2.0으로 자동 대체돼.</p>
+            <p class="hint">3.0은 실제 60차 KING of the JUNGLE 팩과 도감 카드의 원본 이미지를 3D로 사용해. 기존 문이 먼저 열리고 WELCOME TO THE MOMENT가 등장해. WebGL을 사용할 수 없으면 기존 연출로 전환돼.</p>
           </div>
           <div class="control-block">
             <div class="control-label">CARD RARITY <span>테스트 등급</span></div>
@@ -79,15 +79,16 @@
           </div>
           <button type="button" class="launch" id="launch"><span class="launch-glyph">▶</span><span><strong>시네마틱 재생</strong><small>LAUNCH THE REVEAL</small></span><span class="arrow">↗</span></button>
           <button type="button" class="reset" id="reset">↺ 무대 초기화</button>
-          <div class="guardrail"><b>🔒 시연 전용 모드</b><p>이 페이지는 Supabase에 접속하거나 실제 카드를 추첨하지 않아. 보유 카드·확률·천장·개봉 기록은 전혀 변경되지 않아.</p></div>
+          <div class="guardrail"><b>🔒 시연 전용 모드</b><p>이 페이지는 공개 카드팩 이미지만 읽고, 로그인·실제 추첨·보유 카드 수정 API는 호출하지 않아. 확률·천장·개봉 기록은 전혀 변경되지 않아.</p></div>
         </aside>
       </div>
       <div class="bottom-notice"><span>RTM / VISUAL PROTOTYPE</span><span>REAL 3D WEBGL · 이전 버전 언제든 선택 가능</span><span>BUILD 2026.11.04</span></div>
     </main>
   </div>
-  <script src="./rkbo-pack-cinematic.js?v=20261031-direct-board-v13"></script>
+  <script src="./rkbo-pack-cinematic.js?v=20261104-preserved-gate-v1"></script>
   <script src="./preview/cinematic-next.js?v=20261104-lab1"></script>
-  <script src="./preview/cinematic-ultra.js?v=20261104-ultra2"></script>
-  <script src="./preview/lab.js?v=20261104-ultra2"></script>
+  <script src="./card-export.js?v=rtm-real-preview-20261104"></script>
+  <script src="./rkbo-pack-cinematic-ultra.js?v=rtm-20261104-ultra-real-v1"></script>
+  <script src="./preview/lab.js?v=rtm-20261104-real-assets-v1"></script>
 </body>
 </html>

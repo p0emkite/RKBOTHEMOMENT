@@ -12,6 +12,61 @@
  stageLabel=document.querySelector("#stageLabel"),counter=document.querySelector("#counter"),choices=[...document.querySelectorAll("[data-grade]")];
  const engine=window.RKBOPackCinematicNext,legacy=window.RKBOPackCinematic,ultra=window.RTMUltra;
  const MODE_KEY="rtm-lab-selected-mode-v3";
+ // Public read-only pack artwork currently configured for 60차 [KING of the JUNGLE].
+ // Production play always reads the user's selected pack directly from rkbo_pack_settings.
+ const REAL_PACK_ART="https://stajnaagugudgsabntuq.supabase.co/storage/v1/object/public/rkbo-pack-art/season-60/1793024890343-37511bf5-9930-4f86-b0e1-ca5d5395a17a.png";
+ let demoAssetsPromise=null,lastOriginalCard=null;
+ const absolute=path=>new URL(path,document.baseURI).href;
+ async function demoAssets(){
+  if(!demoAssetsPromise)demoAssetsPromise=(async()=>{
+   const [html,photos,backgrounds]=await Promise.all([
+    fetch("./index.html",{cache:"force-cache"}).then(r=>{if(!r.ok)throw Error("60차 도감 데이터를 불러올 수 없어요.");return r.text()}),
+    fetch("./data/card-images.json").then(r=>r.json()),
+    fetch("./data/team-backgrounds.json").then(r=>r.json())
+   ]);
+   const doc=new DOMParser().parseFromString(html,"text/html");
+   const raw=doc.querySelector('script#data[type="application/json"]')?.textContent;
+   if(!raw)throw Error("60차 도감의 원본 선수 데이터를 찾지 못했어요.");
+   const players=JSON.parse(raw);
+   const map=new Map(players.map(p=>[p.id,p]));
+   window.RKBOArt={
+    imageState:p=>{
+     const state=photos.images?.[p.id]||photos.images?.[String(p.id).replace(/-SPECIAL-[A-Z]+$/,"")]||{};
+     return {...state,url:state.path?absolute(state.path):""};
+    }
+   };
+   window.RKBOTeamBackground={
+    imageState:p=>{
+     const state=backgrounds.teams?.[p.team]||{};
+     return {...state,url:state.path?absolute(state.path):""};
+    }
+   };
+   window.RKBOTeamBrand={
+    code:p=>p.team,
+    logo:p=>absolute("assets/teams/"+p.team+(p.team==="NC"?".png":".svg"))
+   };
+   window.RKBOCardSpecials={
+    icon:k=>absolute("assets/special-emblems/"+k+".webp"),
+    backgroundFor:p=>["ROY","MVP","RELIEF"].includes(p.specialKind)?{
+     url:absolute("assets/special-backgrounds/"+p.specialKind+".webp"),overlay:0,zoom:1,x:0,y:0
+    }:null
+   };
+   return map;
+  })();
+  return demoAssetsPromise;
+ }
+ async function exactPreviewCard(sample){
+  if(!window.RKBOCardExport?.make)throw Error("원본 도감 카드 생성기를 불러오지 못했어요.");
+  const baseId=sample.id.replace(/-SPECIAL-[A-Z]+$/,"");
+  const map=await demoAssets(),base=map.get(baseId);
+  if(!base)throw Error("도감에서 선수를 찾지 못했어요: "+baseId);
+  const player={...base,id:sample.id,grade:sample.grade};
+  if(sample.specialKind)player.specialKind=sample.specialKind;
+  const image=await window.RKBOCardExport.make(player,{gold_border:false,prism:false});
+  lastOriginalCard=image;
+  return image;
+ }
+
  let grade="다이아몬드",busy=false,token=0,playCount=0;
  const h=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
  window.RKBOCardView={
@@ -52,6 +107,7 @@
   if(busy)return;
   if(!engine&&!legacy&&!ultra){setStatus("시네마틱 스크립트 로딩 실패 — 페이지를 새로고침해 주세요.");return}
   const current=++token,player={...samples[grade]},selectedMode=mode.value;
+  lastOriginalCard=null;
   engine?.setMode?.(selectedMode==="legacy"?"legacy":"next");
   engine?.setSound?.(sound.checked);
   ultra?.setSound?.(sound.checked);
@@ -64,6 +120,9 @@
    stage.innerHTML='<div class="lab-running" aria-hidden="true"></div>';
    const currentEngine=selectedMode==="ultra"?(ultra||engine||legacy):selectedMode==="legacy"?(legacy||engine):(engine||legacy);
    const ok=await currentEngine.play(stage,grade,()=>current===token,player,{
+    strictAssets:selectedMode==="ultra",
+    packArtUrl:REAL_PACK_ART,
+    renderCard:exactPreviewCard,
     onPhase:phase=>{
      if(current!==token)return;
      const messages={portal:"야구장 입장",flight:"3D 카드팩 진입",charge:"등급 에너지 충전",rupture:"카드팩 파열",ascend:"선수 카드 등장",flip:"3D 카드 회전",hero:"레전드 공개"};
@@ -72,9 +131,13 @@
    });
    if(!ok||current!==token){setStatus("시연이 중단되었어.");return}
    playCount++;
+   const realResult=lastOriginalCard&&selectedMode==="ultra"?
+    '<div class="lab-real-card" role="img" aria-label="'+h(player.name)+' 원본 도감 카드">'+
+    '<img alt="" src="'+lastOriginalCard.toDataURL("image/png")+'"></div>':
+    window.RKBOCardView.render(player);
    stage.innerHTML='<div class="lab-result">'+
     '<span class="lab-result-label">✦ '+h(player.tier)+' — REVEAL COMPLETE</span>'+
-    window.RKBOCardView.render(player)+'</div>';
+    realResult+'</div>';
    counter.textContent=String(playCount).padStart(2,"0")+" / "+String(playCount).padStart(2,"0");
    stageLabel.textContent="REVEAL COMPLETE";
    activateResultTilt();
@@ -89,7 +152,7 @@
   }
  }
  function activateResultTilt(){
-  const card=stage.querySelector(".lab-result .lab-player-card");
+  const card=stage.querySelector(".lab-result .lab-player-card,.lab-result .lab-real-card");
   if(!card)return;
   function move(event){
    const bounds=card.getBoundingClientRect();

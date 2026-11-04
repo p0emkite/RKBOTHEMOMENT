@@ -90,6 +90,21 @@
   }
   return stage.isConnected&&shouldContinue?.()!==false;
  }
+ /** Exact original gate frame, rendered into a caller-provided fullscreen stage.
+  * Reuses existing frame(0), door markup, imagery and keyframes unchanged. */
+ async function playGate(stage,grade,shouldContinue,player){
+  if(!stage?.isConnected)return false;
+  const tier=TYPES[grade]||TYPES["코랄"];
+  const rect=stage.getBoundingClientRect();
+  const width=Math.max(200,rect.width),height=Math.max(220,rect.height);
+  const ratio=2560/1440;
+  const w=Math.ceil(Math.max(width,height*ratio));
+  const sh=Math.ceil(Math.max(height,width/ratio));
+  stage.innerHTML=frame(0,tier,w,sh,grade,player);
+  const reduced=root.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  await wait(reduced?Math.min(320,DURATIONS[0]):DURATIONS[0]);
+  return stage.isConnected&&shouldContinue?.()!==false;
+ }
  function init(){
   if(!document.querySelector("link[data-rkbo-cine]")){
    const link=document.createElement("link");link.rel="stylesheet";
@@ -101,5 +116,5 @@
   });
  }
  init();
- root.RKBOPackCinematic={play,supportedGrade:g=>!!TYPES[g]};
+ root.RKBOPackCinematic={play,playGate,supportedGrade:g=>!!TYPES[g]};
 })(window);

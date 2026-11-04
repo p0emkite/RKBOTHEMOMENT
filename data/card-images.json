@@ -2050,6 +2050,16 @@
       "rev": "mw27o3ws",
       "commit": "6991f3ebd777184c6e4fc21207465e33628a9bb1",
       "blobSha": "f3927bad7a8d0383eccbe12ae0949a4a6706da5f"
+    },
+    "60-SSG-타-008": {
+      "path": "assets/cards/60-SSG-타-008.webp",
+      "x": -1.5384615384615385,
+      "y": 30.656934306569344,
+      "zoom": 1.4,
+      "fit": "contain",
+      "rev": "mw282dpt",
+      "commit": "08db6a90201758dfca5fa4281ed9c6bc3243bfff",
+      "blobSha": "a83f3f211cf41b9a1636260325cfbb736f586365"
     }
   }
 }

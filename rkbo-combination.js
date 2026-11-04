@@ -350,7 +350,7 @@ function render(){
  '<button type="button" data-combo-close aria-label="닫기">×</button></header>'+
  '<div class="rkbo-combo-content"><div class="rkbo-combo-rules">'+
  '<b>동일 차수는 해당 차수 확정</b> · 혼합하면 등록된 시즌 랜덤 · 재료 점수가 높을수록 상위 등급 기대 상승.'+
- '<br>일반 카드의 마지막 1장·MY TEAM 편성 카드·특수 등급 카드는 제외됩니다. 금테/프리즘 카드도 조합할 수 있으며 강화 효과까지 소모될 수 있습니다.</div>'+
+ '<br>일반 카드의 마지막 1장·MY TEAM 편성 카드·특수 등급 카드는 제외됩니다. 금테/프리즘 카드도 조합할 수 있습니다. 카드가 모두 소모되어도 과거 강화 해금은 영구 유지되어 다시 획득하면 자동 복원됩니다.</div>'+
  resultMarkup()+
  '<div class="rkbo-combo-layout"><section class="rkbo-combo-list"><h3>보유 카드 <small>'+inventory.length+'종</small></h3>'+
  '<div class="rkbo-combo-filters"><select data-combo-filter-season>'+options()+'</select>'+
@@ -374,7 +374,7 @@ function render(){
  '<h3>🎲 결과 등급 확률 <small>공개</small></h3>'+percentMarkup()+
  '<button type="button" class="rkbo-combo-submit" data-combo-submit'+(busy||quoteLoading||!quote||selected.length<3||selected.length>5?' disabled':'')+'>'+
  (busy?'서버에서 조합 중…':'⚾ 카드 '+selected.length+'장 조합하기')+'</button>'+
- '<p class="rkbo-combo-note">조합 시 재료 카드가 차감됩니다. 강화 카드만 남은 경우 해당 강화 효과도 사라집니다. 조합은 취소할 수 없습니다.</p>'+
+ '<p class="rkbo-combo-note">조합 시 보유 카드가 차감되지만, 금테·프리즘 강화 해금 이력은 영구 유지됩니다. 같은 카드를 다시 얻으면 자동 적용됩니다. 조합은 취소할 수 없습니다.</p>'+
  '</section></div>'+
  historyMarkup()+'</div>';
  dialog.scrollTop=prevScroll;
@@ -438,7 +438,7 @@ async function combine(){
  const ingredients=selected.slice(),materials=ingredients.map(selectionCard),rated=quote;
  const seasonMsg=rated.mode==="same"?rated.season+"차 고정":"혼합 시즌 랜덤";
  if(!root.confirm("카드 "+ingredients.length+"장을 소모하고 새로운 카드 1장을 얻을까요?\n"+
- seasonMsg+" · 강화 카드가 소모되면 강화 효과도 사라지며, 조합 후 되돌릴 수 없습니다."))return;
+ seasonMsg+" · 조합 후 카드는 되돌릴 수 없지만 금테·프리즘 영구 강화 해금은 유지됩니다."))return;
  busy=true;quoteIndex++;render();
  const requestId=pendingRequest||root.crypto?.randomUUID?.();
  if(!requestId){busy=false;msg("보안 연결에서 요청 ID를 생성할 수 없습니다.");render();return}

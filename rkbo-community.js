@@ -229,7 +229,7 @@ async function act(button){
   const offered=$("#rkbo-cm-offered")?.value;
   if(!offered||!selected||!wanted)throw Error("교환 카드를 선택해 주시기 바랍니다.");
   const affected=await myTeamUsage(offered);
-   if(!root.confirm("각자 보유한 카드 1장씩 교환을 제안하시겠습니까? 강화 카드는 강화 상태도 함께 이전될 수 있습니다."+tradeWarning(affected)))return;
+   if(!root.confirm("각자 보유한 카드 1장씩 교환을 제안하시겠습니까? 강화 카드의 현재 효과는 함께 이전될 수 있습니다. 다만 기존 계정의 강화 해금은 영구 유지되어 같은 카드를 다시 얻으면 자동 복원됩니다."+tradeWarning(affected)))return;
   const request=root.crypto?.randomUUID?.();
   if(!request)throw Error("보안 연결에서 요청 ID를 생성할 수 없습니다.");
   await call("rkbo_community_trade",{p_action:"create",p_target:selected,p_offered:offered,

@@ -723,13 +723,13 @@
     },
     "60-KIA-타-009": {
       "path": "assets/cards/60-KIA-타-009.webp",
-      "x": -2.1538461538461537,
-      "y": 7.664233576642335,
-      "zoom": 0.95,
+      "x": 2.4615384615384617,
+      "y": 36.86131386861314,
+      "zoom": 1.4933767731249405,
       "fit": "contain",
-      "rev": "mvwanr73",
-      "commit": "5959c074ced0d54fc7d869b43b2098dde7ab0cfb",
-      "blobSha": "11238246a5ff5bc485ba64f88b15bf1795de363c"
+      "rev": "mw27okzk",
+      "commit": "83bbe7364ed6875ad8714fb64500ce45c61dda00",
+      "blobSha": "bc0f09ac2bd90a8fa80ab8d905ed23ee3e2f8e80"
     },
     "60-LG-타-010": {
       "path": "assets/cards/60-LG-타-010.webp",

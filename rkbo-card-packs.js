@@ -100,8 +100,8 @@ function frame(){
 }
 const ULTRA_MODE_KEY="rtm-special-cinematic-mode-v3";
 function getCinematicMode(){
- try{return localStorage.getItem(ULTRA_MODE_KEY)==="legacy"?"legacy":"ultra"}
- catch(_){return "ultra"}
+ try{return localStorage.getItem(ULTRA_MODE_KEY)==="ultra"?"ultra":"legacy"}
+ catch(_){return "legacy"}
 }
 function cinematicSettings(){
  const mode=getCinematicMode();

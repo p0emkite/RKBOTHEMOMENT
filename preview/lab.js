@@ -106,6 +106,11 @@
  async function play(){
   if(busy)return;
   if(!engine&&!legacy&&!ultra){setStatus("시네마틱 스크립트 로딩 실패 — 페이지를 새로고침해 주세요.");return}
+  // Never silently show the tiny atlas when the real RTM HD asset fails to load.
+  if(mode.value==="ultra"&&!window.RKBODoorPhoto?.url){
+   setStatus("RTM 고해상도 문 텍스처 로드 실패. 새로고침 후 다시 시도해 줘.");
+   return;
+  }
   const current=++token,player={...samples[grade]},selectedMode=mode.value;
   lastOriginalCard=null;
   engine?.setMode?.(selectedMode==="legacy"?"legacy":"next");

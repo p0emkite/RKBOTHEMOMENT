@@ -120,3 +120,44 @@
  .rkbo-pack-cinematic-settings{padding:10px;margin:10px 2px;gap:7px}
  .rkbo-pack-cinematic-settings select{width:100%}
 }
+
+/* V3.1 — texture fidelity. Eliminate screen-wide high-frequency interference.
+   Dense conic/1px grids made otherwise good art look broken on Retina displays. */
+.rtm-ultra .ultra-veil{
+ background:radial-gradient(ellipse 58% 62% at 50% 48%,color-mix(in srgb,var(--ultra-color) 14%,transparent),transparent 78%);
+ mix-blend-mode:screen;
+ opacity:.32;
+}
+.rtm-ultra .ultra-veil:before{
+ content:none!important;
+ background:none!important;
+}
+.rtm-ultra .ultra-veil:after{
+ opacity:.20;
+ filter:blur(82px);
+}
+.rtm-ultra .ultra-backdrop{
+ filter:brightness(.43) contrast(1.035) saturate(.93);
+ image-rendering:auto;
+}
+/* Keep the ORIGINAL animated door artwork, but draw hard-edged panel highlights
+   in vector CSS so the low-resolution 1248x526 source is not the only detail. */
+.rtm-ultra .rtm-ultra-gate .rkbo-cine-photo-door{
+ image-rendering:auto;
+ filter:contrast(1.035) saturate(.95);
+}
+.rtm-ultra .rtm-ultra-gate .rkbo-cine-photo-door:after{
+ content:"";
+ position:absolute;inset:0;pointer-events:none;
+ background:
+  linear-gradient(90deg,#020713a8,transparent 3.5%,transparent 94%,#000b 100%),
+  linear-gradient(180deg,#0612226b,transparent 7%,transparent 87%,#0207137d);
+ border:1px solid #9cb4cb22;
+ box-shadow:inset 0 0 2px #a5defa2d;
+}
+.rtm-ultra .ultra-webgl{
+ image-rendering:auto;
+}
+@media(prefers-reduced-motion:reduce){
+ .rtm-ultra .ultra-veil:after{animation:none!important}
+}

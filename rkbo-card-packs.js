@@ -411,7 +411,7 @@ async function refreshStats(){
  ]);
  if(inventory.error)throw Error(inventory.error.message);
  if(state.error)throw Error(state.error.message);
- owned=new Map((inventory.data||[]).map(v=>[v.card_id,v]));
+ owned=new Map((inventory.data||[]).filter(v=>v.quantity>0||v.gold_border||v.prism).map(v=>[v.card_id,v]));
  packsState=state.data||null;
  absorbServerCooldown(packsState?.last_open_at);
 }
@@ -441,13 +441,15 @@ function renderCollection(){
  '<option value="owned" '+(collectionFilter==="owned"?"selected":"")+'>보유 카드</option><option value="missing" '+(collectionFilter==="missing"?"selected":"")+'>미보유 카드</option></select>'+
  '<select data-pack-grade aria-label="등급"><option value="all">모든 등급</option>'+RARITIES.map(g=>'<option value="'+esc(g)+'" '+(collectionGrade===g?"selected":"")+'>'+esc(displayGrade(g))+'</option>').join("")+'</select></div>'+
  '<div class="rkbo-pack-collection-grid">'+filtered.slice(0,collectionLimit).map(c=>{
- const inv=owned.get(c.card_id),count=inv?.quantity||0,p=cache.get(c.season)?.get(c.card_id);
+ const inv=owned.get(c.card_id),materialCount=Math.max(0,Number(inv?.quantity)||0),
+  count=materialCount+(inv?.gold_border||inv?.prism?1:0),
+  p=cache.get(c.season)?.get(c.card_id);
  return '<div class="rkbo-pack-collection-item '+(inv?"is-owned":"is-locked")+'">'+
   (inv?'<div class="rkbo-pack-collection-card '+(inv.gold_border?'rkbo-gold-border ':'')+(inv.prism?'rkbo-prism ':'')+'">'+renderPlayer(p)+'</div>'+
    '<span class="rkbo-pack-owned-label">잔여 ×'+count+(inv.gold_border?' · ✨ 금테':'')+(inv.prism?' · 🌈 프리즘':'')+'</span>'+
    '<div class="rkbo-pack-upgrade-actions">'+
-   (!inv.gold_border?'<button data-pack-upgrade="gold" data-pack-card="'+esc(c.card_id)+'" '+(count<5?'disabled':'')+'>✨ 금테 (5장)</button>':'')+
-   (!inv.prism?'<button data-pack-upgrade="prism" data-pack-card="'+esc(c.card_id)+'" '+(count<10?'disabled':'')+'>🌈 프리즘 (10장)</button>':'')+
+   (!inv.gold_border?'<button data-pack-upgrade="gold" data-pack-card="'+esc(c.card_id)+'" '+(materialCount<5?'disabled':'')+'>✨ 금테 (5장)</button>':'')+
+   (!inv.prism?'<button data-pack-upgrade="prism" data-pack-card="'+esc(c.card_id)+'" '+(materialCount<10?'disabled':'')+'>🌈 프리즘 (10장)</button>':'')+
    '</div>':
   '<div class="rkbo-pack-silhouette"><span>🔒</span><strong>???</strong><small>'+esc(c.season)+'차 · 미보유</small></div>')+
  '</div>';
@@ -567,7 +569,7 @@ function init(){
  dialog.addEventListener("click",async e=>{
   const btn=e.target.closest("[data-pack-upgrade]");if(!btn||opening)return;
   const kind=btn.dataset.packUpgrade,id=btn.dataset.packCard,cost=kind==="gold"?5:10;
-  if(!confirm("이 선수 카드 "+cost+"장을 소모해 "+(kind==="gold"?"금색 외곽 테두리":"프리즘 표면 효과")+"를 영구 적용할까요?"))return;
+  if(!confirm("이 선수 카드 "+cost+"장을 소모해 "+(kind==="gold"?"금색 외곽 테두리":"프리즘 표면 효과")+"를 영구 해금할까요? 카드를 모두 소모한 후 같은 카드를 다시 획득해도 강화가 자동 적용됩니다."))return;
   btn.disabled=true;
   try{
    const {c}=await context();

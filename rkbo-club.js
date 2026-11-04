@@ -14,7 +14,7 @@ const statLabels=p=>p?.card_type==="타자"?["정확","파워","선구","주루"
 let overlay=null,panel=null,screen="editor",busy=false,loaded=false,teamId=null,matchTeamId=null,teamName="나의 RKBO 팀";
 let picks={},lineup=initialLineup(),owned=new Map(),official=new Map(),teams=[],matches=[],match=null,focusedSwap=null;
 let ladderSeason=60,ladderData=null,ladderTeamId=null,ladderGame=null,ladderHistory=[];
-let navButton=null;
+let navButton=null,tradeVacancies=new Set();
 const $=q=>panel?.querySelector(q);
 function context(){
  if(!root.RKBOOnline?.getClient)throw Error("RKBO ONLINE 연결을 확인해 주세요.");
@@ -51,8 +51,10 @@ function candidate(slot){
  return [...owned.values()].filter(p=>role==="DH"?p.card_type==="타자":p.position===role)
  .sort((a,b)=>b.ovr-a.ovr||display(a).localeCompare(display(b),"ko"));
 }
-function missingCount(){return SLOTS.filter(s=>!picks[s[0]]).length}
-function reset(){picks={};lineup=initialLineup();teamId=null;teamName="나의 RKBO 팀";focusedSwap=null}
+function missingCount(){return SLOTS.filter(s=>!picks[s[0]]||!owned.has(picks[s[0]])).length}
+function missingOnTeam(t){return (t?.slots||[]).filter(x=>!x.cardId||!owned.has(x.cardId)).length}
+function isTeamReady(t){return !!t&&t.slots?.length===18&&missingOnTeam(t)===0}
+function reset(){picks={};lineup=initialLineup();teamId=null;teamName="나의 RKBO 팀";focusedSwap=null;tradeVacancies.clear()}
 function auto(){
  reset();
  const selected=new Set();
@@ -88,7 +90,7 @@ function rowHtml(slot,label,role){
  E(display(c))+' · '+E(c.team)+' '+E(c.season)+'차 · OVR '+c.ovr+'</option>').join("")+'</select>'+
  (p?'<div class="rkbo-club-player"><strong>'+E(display(p))+'</strong><span>OVR '+p.ovr+'</span></div>'+
  '<div class="rkbo-club-stats">'+stats(p)+'</div>':
- '<p class="rkbo-club-empty-slot">선수 미배치</p>')+'</div>';
+ '<p class="rkbo-club-empty-slot">'+(tradeVacancies.has(slot)?'⚠️ 교환으로 비워진 자리 · 대체 선수 선택 필요':'선수 미배치')+'</p>')+'</div>';
 }
 function orderedRow(group,slot,label){
  const p=owned.get(picks[slot]),active=focusedSwap?.group===group&&focusedSwap.slot===slot;
@@ -100,10 +102,12 @@ function orderedRow(group,slot,label){
 }
 function editor(){
  const el=$("#rkbo-club-content");if(!el)return;
- const sc=score(),remain=missingCount();
+ const sc=score(),remain=missingCount(),savedTeam=teams.find(t=>t.id===teamId);
+ const pendingRepair=!!savedTeam&&!isTeamReady(savedTeam);
  el.innerHTML='<section class="rkbo-club-summary"><div><small>편성</small><strong>'+(18-remain)+'/18</strong></div>'+
  '<div><small>평균 OVR</small><strong>'+(sc?.average||"—")+'</strong></div>'+
  '<div><small>팀 전력 TPI</small><strong>'+(sc?.tpi||"—")+'</strong></div></section>'+
+ (pendingRepair?'<p class="rkbo-club-instructions">⚠️ 이 MY TEAM은 교환으로 선수가 이탈했습니다. 빈자리를 보충하고 팀 수정 저장을 완료해야 경기할 수 있습니다.</p>':'')+
  '<div class="rkbo-club-tools"><label>팀 이름 <input id="rkbo-club-name" maxlength="40" value="'+E(teamName)+'"></label>'+
  '<button data-club="auto">✨ 보유 카드 자동 편성</button><button data-club="reset">초기화</button>'+
  '<button data-club="save" class="primary" '+(remain?'disabled':'')+'>💾 '+(teamId?'팀 수정 저장':'새 팀 저장')+'</button></div>'+
@@ -117,7 +121,7 @@ function editor(){
  orderSection("선발 로테이션","rotation",lineup.rotation,(s,i)=>(i+1)+"선발")+
  orderSection("중계 순서","bullpen",lineup.bullpen,(s,i)=>(i+1)+"중계")+'</div>'+
  '<div class="rkbo-club-footer-buttons"><button data-club="save" class="primary" '+(remain?'disabled':'')+'>💾 팀 저장</button>'+
- (teamId?'<button data-club="play" class="primary">⚾ 이 팀으로 경기</button>':'')+
+ (teamId?'<button data-club="play" class="primary" '+(remain||pendingRepair?'disabled':'')+'>⚾ 이 팀으로 경기</button>':'')+
  '<button data-club="pack">🎫 카드팩에서 선수 모으기</button></div>';
 }
 function orderSection(title,group,list,label){
@@ -161,22 +165,30 @@ async function loadTeams(){
  if(error)throw Error(error.message);
  teams=data||[];
 }
-function useTeam(t){picks=Object.fromEntries((t.slots||[]).map(p=>[p.slot,p.cardId]));lineup=JSON.parse(JSON.stringify(t.lineup||initialLineup()));teamId=t.id;teamName=t.name;screen="editor";show()}
+function useTeam(t){
+ tradeVacancies=new Set((t.slots||[]).filter(x=>!x.cardId&&x.tradedOutCardId).map(x=>x.slot));
+ picks=Object.fromEntries((t.slots||[]).filter(x=>x.cardId&&owned.has(x.cardId)).map(x=>[x.slot,x.cardId]));
+ lineup=JSON.parse(JSON.stringify(t.lineup||initialLineup()));
+ teamId=t.id;teamName=t.name;screen="editor";show();
+}
 function listTeams(){
  const el=$("#rkbo-club-content");if(!el)return;
  el.innerHTML='<h3>💾 내 보유 카드 팀</h3><p class="rkbo-club-instructions">보유 카드로 편성한 로스터만 저장됩니다. 기존 랜덤 DRAFT 결과·랭킹과는 별개입니다.</p>'+
  (teams.length?'<div class="rkbo-club-team-list">'+teams.map(t=>
- '<article class="rkbo-club-team"><div><h4>'+E(t.name)+'</h4><small>18명 · 평균 OVR '+Number(t.average_ovr).toFixed(1)+'</small></div>'+
- '<strong>TPI '+t.tpi+'</strong><div class="rkbo-club-team-actions">'+
- '<button data-club-team="load" data-id="'+E(t.id)+'">✎ 편집</button>'+
- '<button data-club-team="play" data-id="'+E(t.id)+'">⚾ 친선</button>'+
- '<button data-club-team="ladder" data-id="'+E(t.id)+'">🏆 도장깨기</button>'+
+ '<article class="rkbo-club-team"><div><h4>'+E(t.name)+'</h4><small>'+(isTeamReady(t)?'18명 · 평균 OVR '+Number(t.average_ovr).toFixed(1):
+  '⚠️ '+missingOnTeam(t)+'명 미배치 · 선수 교체 후 재저장 필요')+'</small></div>'+
+ '<strong>TPI '+(isTeamReady(t)?t.tpi:'—')+'</strong><div class="rkbo-club-team-actions">'+
+ '<button data-club-team="load" data-id="'+E(t.id)+'">✎ '+(isTeamReady(t)?'편집':'선수 교체')+'</button>'+
+ '<button data-club-team="play" data-id="'+E(t.id)+'" '+(isTeamReady(t)?'':'disabled')+'>⚾ 친선</button>'+
+ '<button data-club-team="ladder" data-id="'+E(t.id)+'" '+(isTeamReady(t)?'':'disabled')+'>🏆 도장깨기</button>'+
  '<button data-club-team="delete" data-id="'+E(t.id)+'">삭제</button></div></article>').join("")+'</div>':
  '<p class="rkbo-club-instructions">저장된 팀이 아직 없습니다. 먼저 보유 카드로 18명을 편성해 주시기 바랍니다.</p>')+
  '<button data-club="screen-editor">← 팀 편성으로 돌아가기</button>';
 }
 async function play(id){
  if(busy)return;
+ const t=teams.find(x=>x.id===id);
+ if(t&&!isTeamReady(t)){message("비워진 MY TEAM 포지션을 보충하고 팀을 다시 저장해 주세요.");return}
  busy=true;matchTeamId=id;screen="match";show();
  const el=$("#rkbo-club-content");el.innerHTML='<div class="rkbo-club-loading"><h3>⚾ 9이닝 경기 중…</h3><p>선수 능력치로 타격과 투구 결과를 계산하고 있습니다.</p></div>';
  try{
@@ -192,7 +204,7 @@ function renderMatch(){
  const el=$("#rkbo-club-content");if(!el)return;
  if(!match){
   el.innerHTML='<h3>⚾ MATCH · CPU와 9이닝 경기</h3><p class="rkbo-club-instructions">완성한 내 팀을 선택하면 서버에서 타격·투수 능력치로 9이닝 경기를 시뮬레이션해.</p>'+
-  (teams.length?teams.map(t=>'<button class="rkbo-club-play-row" data-club-team="play" data-id="'+E(t.id)+'">⚾ '+E(t.name)+' · TPI '+t.tpi+' → CPU 도전</button>').join(""):
+  (teams.length?teams.map(t=>'<button class="rkbo-club-play-row" data-club-team="play" data-id="'+E(t.id)+'" '+(isTeamReady(t)?'':'disabled')+'>⚾ '+E(t.name)+' · '+(isTeamReady(t)?'TPI '+t.tpi+' → CPU 도전':'선수 교체 필요')+'</button>').join(""):
   '<p class="rkbo-club-instructions">먼저 18인 MY TEAM을 저장해 주시기 바랍니다.</p>');
  }else{
   el.innerHTML='<section class="rkbo-club-match-score"><small>CPU EXHIBITION · 9 INNINGS</small><h3>'+resultBadge(match.result)+'</h3>'+
@@ -255,7 +267,8 @@ function renderLadder(){
  const el=$("#rkbo-club-content");if(!el)return;
  const d=ladderData,all=d?.teams||[],cleared=Number(d?.clearedCount||0),total=Number(d?.total||0);
  const next=all[cleared],complete=d&&cleared>=total;
- if(!teams.some(t=>t.id===ladderTeamId))ladderTeamId=teams[0]?.id||null;
+ const readyTeams=teams.filter(isTeamReady);
+ if(!readyTeams.some(t=>t.id===ladderTeamId))ladderTeamId=readyTeams[0]?.id||null;
  el.innerHTML='<div class="rkbo-ladder-top"><h3>🏆 시즌별 구단 도장깨기</h3>'+
  '<label>도전할 시즌<select data-club-ladder-season>'+ladderSeasonOptions()+'</select></label></div>'+
  '<p class="rkbo-club-instructions">시즌별 공식 선수 카드의 평균 OVR을 기준으로 만든 전력 순위야. 실제 리그 최종 순위는 아니야. 낮은 순위부터 이기고 올라가!</p>'+
@@ -273,8 +286,8 @@ function renderLadder(){
  }).join("")+'</div>'+
  (complete?'<p class="rkbo-ladder-finish">🎉 이 시즌의 모든 구단을 제패했습니다! 다른 시즌에도 도전해 주시기 바랍니다.</p>':
   '<div class="rkbo-ladder-challenge"><label>출전할 MY TEAM<select data-club-ladder-team>'+
-  (teams.length?teams.map(t=>'<option value="'+E(t.id)+'"'+(t.id===ladderTeamId?' selected':'')+'>'+
-   E(t.name)+' · TPI '+t.tpi+'</option>').join(""):'<option value="">저장한 팀이 없습니다</option>')+
+  (readyTeams.length?readyTeams.map(t=>'<option value="'+E(t.id)+'"'+(t.id===ladderTeamId?' selected':'')+'>'+
+   E(t.name)+' · TPI '+t.tpi+'</option>').join(""):'<option value="">출전 가능한 팀 없음 · 선수 교체 필요</option>')+
   '</select></label><button type="button" class="primary" data-club="ladder-play"'+(!ladderTeamId||busy?' disabled':'')+'>'+
   '⚾ '+(next?next.rank+'위 '+E(next.name):'다음 상대')+' 도전</button></div>'));
  if(ladderGame){
@@ -326,6 +339,7 @@ async function openLadder(){
 }
 async function playLadder(){
  if(busy||!ladderTeamId||!ladderData)return;
+ if(!isTeamReady(teams.find(t=>t.id===ladderTeamId))){message("교환으로 비워진 MY TEAM 자리를 채우고 다시 저장해 주세요.");return}
  busy=true;const id=ladderTeamId,s=ladderSeason;
  const el=$("#rkbo-club-content");if(!el)return;
  el.innerHTML='<div class="rkbo-club-loading"><h3>⚾ 시즌 도장깨기 경기 진행 중…</h3><p>서버에서 공식 카드 능력치로 9이닝을 계산하고 있습니다.</p></div>';
@@ -401,7 +415,7 @@ function init(){
   const select=e.target.closest("[data-club-slot]");if(!select)return;
   const slot=select.dataset.clubSlot,val=select.value;
   if(val&&Object.values(picks).some((id)=>id===val&&picks[slot]!==id)){message("한 카드로 두 포지션을 동시에 채울 수 없습니다.");editor();return}
-  if(val)picks[slot]=val;else delete picks[slot];
+  if(val){picks[slot]=val;tradeVacancies.delete(slot)}else delete picks[slot];
   editor();
  });
  panel.addEventListener("click",async e=>{
@@ -457,5 +471,11 @@ function init(){
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!overlay.hidden)close()});
 }
 root.RKBOClub={open};
+root.addEventListener("rkbo-trade-updated",()=>{
+ if(!overlay||overlay.hidden)return;
+ void load().then(()=>{
+  if(!overlay.hidden){show();message("교환 내역을 반영했습니다. 비워진 포지션은 선수 교체 후 다시 저장해 주세요.")}
+ }).catch(e=>console.warn("[RTM MY TEAM refresh]",e));
+});
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })(window);

@@ -56,7 +56,7 @@
 <div class="site">
 <header class="nav"><a href="#" class="brand" aria-label="RTM | RKBO THE MOMENT 첫 화면"><img class="archive-brand-logo" src="./assets/rkbo-archive-logo.webp" alt="RKBO 리그 로고"><span class="brand-sub">RTM | RKBO THE MOMENT</span></a><div class="nav-right"></div></header>
 <section class="hero"><div><div class="season-picker-row"><label for="season-select" class="season-select-label">시즌 선택</label><select id="season-select" class="season-select" aria-label="시즌 선택"><option value="60">60차 시즌</option></select><span id="season-loading" class="season-loading" aria-live="polite"></span></div><h1><span id="hero-season-number">60</span>차 시즌,<br><em>기록이 카드가 되다.</em></h1></div><div class="hero-right"><div class="giant60" id="hero-background-season">60</div><div class="hero-emblem" data-season="60"></div></div></section>
-<section class="stats-head" aria-label="시즌 개요"><div class="kpi"><div class="number" id="all-count">211</div><div class="label">시즌 선수 카드</div></div><div class="kpi"><div class="number" id="bat-count">105</div><div class="label">타자 카드</div></div><div class="kpi"><div class="number" id="pit-count">106</div><div class="label">투수 카드</div></div><div class="kpi"><div class="number" id="fav-count">0</div><div class="label">내 관심 카드 ★</div></div></section>
+<section class="stats-head" aria-label="시즌 개요"><div class="kpi"><div class="number" id="all-count">211</div><div class="label">시즌 선수 카드</div></div><div class="kpi"><div class="number" id="bat-count">105</div><div class="label">타자 카드</div></div><div class="kpi"><div class="number" id="pit-count">106</div><div class="label">투수 카드</div></div><div class="kpi"><div class="number" id="fav-count">0</div><div class="label">전체 차수 관심 카드 ★</div></div></section>
 <hr class="divider">
 <section aria-label="카드 등급"><div class="section-h"><div><div class="eyebrow">RARITY SYSTEM</div><h2>카드 등급</h2></div><p>등급을 누르면 해당 카드만 표시합니다.</p></div><div class="tiers" id="tiers"></div></section>
 <section aria-label="선수 카드 도감"><div class="section-h"><div><div class="eyebrow">THE COLLECTION</div><h2><span id="collection-season-number">60</span>차 선수 도감</h2></div><p>선수 카드를 누르면 상세 기록이 열립니다.</p></div>
@@ -67,7 +67,7 @@
 <div class="dialog-bg" id="modal" role="presentation" hidden><div class="dialog" role="dialog" aria-modal="true" aria-label="선수 상세 기록" id="dialog"><div id="modal-body"></div></div></div>
 <script src="./vendor/jszip.min.js"></script>
 <script src="./rkbo_xls_biff.js"></script>
-<script src="./rkbo-season-engine.js"></script>
+<script src="./rkbo-season-engine.js?v=20261104-stamina-workload"></script>
 <script src="./rkbo-role-rules.js?v=cp-20261025"></script>
 <script src="./team-branding.js?v=season43"></script>
 <script src="./enhancements.js?v=trt-20261031"></script>
@@ -87,6 +87,7 @@ function isCardEligible(p){const games=Number(p?.stats?.G);return Number.isInteg
 let roster=JSON.parse(document.getElementById('data').textContent).filter(isCardEligible);
 await window.RKBONameMap.apply(roster,document.getElementById('data'));
 window.RKBOTeamBrand.decorate(roster);
+window.RKBOSeasonEngine.applyStamina(roster);
 const baseRoster60=roster.slice();
 await window.RKBOCardSpecials.load();
 roster=window.RKBOCardSpecials.addTo(roster,60);
@@ -113,7 +114,7 @@ function card(p,detail=false){let g=grades[p.grade]||grades.실버;const special
 window.RKBOCardView={render:card};
 function matches(){let lst=roster.filter(p=>(S.kind==='전체'||p.type===S.kind)&&(S.team==='전체'||p.team===S.team)&&(S.pos==='전체'||p.pos===S.pos)&&(S.grade==='전체'||p.grade===S.grade)&&(!S.favOnly||fav.has(p.id))&&(!S.query||((p.name+' '+(p.historicalEnglishName||'')+' '+(p.englishName||'')+' '+(p.rawName||'')+' '+p.teamLabel+' '+p.team+' '+p.pos).toLocaleLowerCase()).includes(S.query.toLocaleLowerCase())));
 lst.sort((a,b)=>S.sort==='low'?a.ovr-b.ovr||a.name.localeCompare(b.name,'ko'):S.sort==='name'?a.name.localeCompare(b.name,'ko'):S.sort==='grade'?grades[b.grade].rank-grades[a.grade].rank||b.ovr-a.ovr:b.ovr-a.ovr||a.name.localeCompare(b.name,'ko'));return lst}
-function draw(){renderTiers();q('all-count').textContent=roster.length;q('bat-count').textContent=roster.filter(p=>p.type==='타자').length;q('pit-count').textContent=roster.filter(p=>p.type==='투수').length;q('fav-count').textContent=roster.filter(p=>fav.has(p.id)).length;const m=matches();q('result-count').textContent=m.length;q('filter-label').textContent=S.grade==='전체'?'':`· ${gradeLabel(S.grade)}`;q('cards').innerHTML=m.length?m.slice(0,S.limit).map(card).join(''):'<div class="empty" style="grid-column:1/-1">선택한 조건의 선수가 없습니다.<br>검색어나 필터를 바꿔 주세요.</div>';q('show-more').hidden=m.length<=S.limit;q('show-more').textContent=`카드 더 보기 (${Math.min(S.limit,m.length)} / ${m.length}) ↓`;q('fav-only').classList.toggle('active',S.favOnly);q('fav-only').textContent=S.favOnly?'★ 관심 카드만':'☆ 관심 카드만';document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===S.kind))}
+function draw(){renderTiers();q('all-count').textContent=roster.length;q('bat-count').textContent=roster.filter(p=>p.type==='타자').length;q('pit-count').textContent=roster.filter(p=>p.type==='투수').length;q('fav-count').textContent=fav.size;q('fav-count').title='전체 차수 '+fav.size+'장 · 현재 '+activeSeason+'차 '+roster.filter(p=>fav.has(p.id)).length+'장';const m=matches();q('result-count').textContent=m.length;q('filter-label').textContent=S.grade==='전체'?'':`· ${gradeLabel(S.grade)}`;q('cards').innerHTML=m.length?m.slice(0,S.limit).map(card).join(''):'<div class="empty" style="grid-column:1/-1">선택한 조건의 선수가 없습니다.<br>검색어나 필터를 바꿔 주세요.</div>';q('show-more').hidden=m.length<=S.limit;q('show-more').textContent=`카드 더 보기 (${Math.min(S.limit,m.length)} / ${m.length}) ↓`;q('fav-only').classList.toggle('active',S.favOnly);q('fav-only').textContent=S.favOnly?'★ 관심 카드만':'☆ 관심 카드만';document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===S.kind))}
 function rebuildTeams(){
  const select=q('team'),current=S.team;
  const groups=[...new Set(roster.map(p=>p.team))].sort((a,b)=>a.localeCompare(b));
@@ -225,6 +226,7 @@ async function changeSeason(value){
    players=validateSeasonCards(incoming,n);
    await window.RKBONameMap.apply(players,null);
    window.RKBOTeamBrand.decorate(players);
+   window.RKBOSeasonEngine.applyStamina(players);
    players=window.RKBOCardSpecials.addTo(players,n);
    seasonCache.set(n,players);
   }
@@ -280,11 +282,11 @@ paintActiveSeason();loadSeasonManifest().catch(error=>{q('season-loading').textC
 <script src="./rkbo-pack-cinematic.js?v=20261104-preserved-gate-v1"></script>
 <script src="./rkbo-pack-cinematic-ultra.js?v=rtm-20261104-alpha-hdback-v3"></script>
 <script src="./rkbo-card-packs.js?v=rtm-20261104-ultra-default-v4"></script>
-<script src="./rkbo-combination.js?v=rtm-20261031-1"></script>
+<script src="./rkbo-combination.js?v=20261104-enhanced-random"></script>
 <script src="./rkbo-club.js?v=trt-20261031"></script>
 <script src="./rkbo-archive-collection.js?v=trt-20261031"></script>
 <script src="./rkbo-draft.js?v=season-select-20261027b"></script>
-<script src="./rkbo-community.js?v=20261101-trade-repeat-and-scroll"></script>
+<script src="./rkbo-community.js?v=20261104-trade-any-owned"></script>
 <script src="./rkbo-chat-dock.js?v=20261101-no-private-chat-alert"></script>
 <script src="./rkbo-activity.js?v=20261101-alert-close-v2"></script>
 <script src="./rkbo-peer-friendlies.js?v=trt-20261031"></script>
